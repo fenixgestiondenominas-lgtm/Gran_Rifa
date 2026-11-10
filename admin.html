@@ -263,7 +263,7 @@ h1.t{font-size:26px;font-weight:800;letter-spacing:-.5px}
 </head>
 <body>
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyv62EqYTk2a__tn8xXUywTTVqDBjDPCZGzZWvwIwh7lD0AkV56C4qyp_SmEQArrrMl/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDe8pjizbvsc7_V1GoR7fFTVPb8Dtj77ey5ZAEW_KmEgpQIHt0XCX1THyVSuqtxEu2/exec';
 let KEY = '';
 const fmt = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');   // 25000 -> 25.000
 const PRECIO = new Proxy({}, { get: (_, k) => { try { const m = conf.nums.mods[k]; if (m && Number(m.precio) > 0) return Number(m.precio); } catch (e) {} return { x1: 25000, x3: 50000 }[k] || 0; } });
@@ -454,32 +454,34 @@ async function apiEstado(id, est) {
   const res = await fetch(SCRIPT_URL + '?action=status&id=' + encodeURIComponent(id) + '&estado=' + encodeURIComponent(est) + '&key=' + encodeURIComponent(KEY), { redirect: 'follow', cache: 'no-store' });
   const json = await res.json(); if (json.ok === false) throw new Error(json.error || 'No se pudo actualizar');
   const r = registros.find(x => String(x.id) === String(id)); if (r) r.estado = est;
+  return json;
 }
 async function apiBorrar(id) {
   const res = await fetch(SCRIPT_URL + '?action=delete&id=' + encodeURIComponent(id) + '&key=' + encodeURIComponent(KEY), { redirect: 'follow', cache: 'no-store' });
   const json = await res.json(); if (json.ok === false) throw new Error(json.error || 'No se pudo borrar');
   registros = registros.filter(x => String(x.id) !== String(id));
 }
-async function apiCorreo(to, asunto, cuerpo) {
-  const res = await fetch(SCRIPT_URL + '?action=sendmail&key=' + encodeURIComponent(KEY) + '&to=' + encodeURIComponent(to) + '&subject=' + encodeURIComponent(asunto) + '&body=' + encodeURIComponent(cuerpo), { redirect: 'follow', cache: 'no-store' });
-  let j; try { j = await res.json(); } catch (e) { throw new Error('El script no tiene el envío de correos instalado (pega correos.gs)'); }
-  if (!j.ok) throw new Error(j.error || 'No se pudo enviar el correo');
-}
-const plantilla = (t, r) => String(t || '').replace(/\[NOMBRE\]/g, r.nombre || '').replace(/\[NUMERO\]/g, nums(r).join(', ')).replace(/\[TOTAL\]/g, usd(totR(r)));
 async function setEstado(id, est, msg) {
   const r = registros.find(x => String(x.id) === String(id));
-  try { await apiEstado(id, est); render(); }
+  let j;
+  try { j = await apiEstado(id, est); render(); }
   catch (e) { return toast('Error: ' + e.message, true); }
-  if (est === 'publicado' && !msg && r && conf.mail.cliente.on && /^\S+@\S+\.\S+$/.test(String(r.correo || '').trim())) {
-    try { await apiCorreo(r.correo.trim(), plantilla(conf.mail.cliente.asunto, r), plantilla(conf.mail.cliente.msg, r)); toast('Pago aprobado y correo enviado a ' + r.correo); }
-    catch (e) { toast('Pago aprobado, pero el correo falló: ' + e.message, true); }
-  } else toast(msg || (est === 'publicado' ? 'Pago aprobado' : 'Registro rechazado'));
+  if (est === 'publicado' && !msg) {
+    const c = String((j && j.correo) || '');
+    if (c === 'enviado') toast('Pago aprobado y correo enviado a ' + (r ? r.correo : 'el cliente'));
+    else if (c.indexOf('error') === 0) toast('Pago aprobado, pero el correo falló (' + c.slice(7) + ')', true);
+    else if (c === 'desactivado') toast('Pago aprobado (el correo al cliente está desactivado)');
+    else toast('Pago aprobado');
+  } else toast(msg || 'Registro rechazado');
 }
 async function probarCorreo() {
   const to = String(conf.mail.admin || '').trim();
-  if (!/^\S+@\S+\.\S+$/.test(to)) return toast('Escribe primero tu correo', true);
-  try { await apiCorreo(to, 'Prueba · Gran Rifa', 'Si lees esto, el envío de correos funciona ✅'); toast('Correo de prueba enviado a ' + to); }
-  catch (e) { toast('Error: ' + e.message, true); }
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=testmail&key=' + encodeURIComponent(KEY) + '&to=' + encodeURIComponent(to), { redirect: 'follow', cache: 'no-store' });
+    let j; try { j = await res.json(); } catch (e) { throw new Error('El script aún no tiene la versión nueva (Codigo.gs)'); }
+    if (!j.ok) throw new Error(j.error || 'No se pudo enviar');
+    toast('Correo de prueba enviado a ' + j.to);
+  } catch (e) { toast('Error: ' + e.message, true); }
 }
 const prevEst = r => String(r.estado || 'pendiente').toLowerCase();
 function borrar(id) { const r = registros.find(x => String(x.id) === String(id)); if (r) setEstado(id, 'eliminado:' + prevEst(r), 'Movido a Eliminados'); }

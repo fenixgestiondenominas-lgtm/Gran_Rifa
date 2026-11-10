@@ -375,9 +375,9 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 
 <script>
 // ── GOOGLE SHEETS — pega tu URL aquí ──
-var GSHEET_URL='https://script.google.com/macros/s/AKfycbyv62EqYTk2a__tn8xXUywTTVqDBjDPCZGzZWvwIwh7lD0AkV56C4qyp_SmEQArrrMl/exec'; // MISMO backend que admin.html (SCRIPT_URL). Si cambias uno, cambia el otro.
+var GSHEET_URL='https://script.google.com/macros/s/AKfycbxDe8pjizbvsc7_V1GoR7fFTVPb8Dtj77ey5ZAEW_KmEgpQIHt0XCX1THyVSuqtxEu2/exec'; // MISMO backend que admin.html (SCRIPT_URL). Si cambias uno, cambia el otro.
 // ────────────────────────────────────────
-var MONEDA='COP', regData={}, compImg=null, selId=null, modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10, ALERTAS=true;
+var MONEDA='COP', regData={}, compImg=null, selId=null, modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10;
 // Modalidades (mismos valores por defecto que admin.html; el admin las publica y aplicarConfig() las sobrescribe)
 //  x1 = 1 número por boleto · xN (N>=2) = TALONARIO: cada boleto trae N números repartidos en el rango
 //  cifras 1 -> 0–9 · cifras 2 -> 00–99 · cifras 3 -> 000–999
@@ -396,14 +396,6 @@ function etiquetaMod(k){var n=nDe(k);return n>1?'Talonario x'+n:'Número individ
 modo=modsOn()[0];
 var _metodo='nubank'; // único método de pago activo
 
-// Avisa al admin por correo (el script lo envía solo al dueño del Apps Script). No bloquea ni rompe el registro si falla.
-function notificarAdmin(tipo){
-  if(!ALERTAS||!GSHEET_URL||!regData||!regData.nombre) return;
-  try{
-    var p='action=notify&tipo='+encodeURIComponent(tipo)+'&nombre='+encodeURIComponent(regData.nombre)+'&celular='+encodeURIComponent(regData.pais||'')+'&correo='+encodeURIComponent(regData.correo||'')+'&invito='+encodeURIComponent(regData.invito||'')+'&numeros='+encodeURIComponent((regData.nums||[]).join(','))+'&total='+encodeURIComponent(regData.total||0)+'&modo='+encodeURIComponent(regData.modo||'');
-    fetch(GSHEET_URL+'?'+p,{redirect:'follow',cache:'no-store'}).catch(function(){});
-  }catch(e){}
-}
 function copiarLlaveNu(){
   var llave=document.getElementById('nullave').textContent;
   navigator.clipboard.writeText(llave).then(function(){
@@ -615,7 +607,6 @@ async function cargarConfigAdmin(){
     var j=await r.json();
     if(!j||!j.ok||!j.data) return;
     var c=j.data, ms=(c.pago&&c.pago.metodos)||[];
-    ALERTAS=!(c.mail&&c.mail.alertas===false);
     try{ aplicarConfig(c); }catch(e){ console.warn('[Config] no se pudo aplicar', e); }
     var nu=ms.filter(function(m){return m.tipo==='nu';})[0];
     if(nu){
@@ -725,7 +716,6 @@ async function registrar(){
   }
   // ID real que asignó el servidor (fila de la hoja): con él se sube luego el comprobante
   regData.id=res.id;
-  notificarAdmin('registro');
   var rl=await dbGet('rifa_dic_reg')||[];
   rl.push({id:res.id,nombre:n,pais:p,correo:c,invito:inv,nums:nums,total:tot,estado:'pendiente',metodo:_metodo,fecha:new Date().toLocaleString('es-CO'),comprobante:null});
   await dbSet('rifa_dic_reg',rl);
@@ -805,7 +795,6 @@ async function confirmarComp(){
     alert('Tu comprobante quedó guardado en este dispositivo, pero hubo un problema enviándolo al servidor. Por favor avisa al organizador con una captura de este comprobante, o intenta de nuevo.');
     return;
   }
-  notificarAdmin('comprobante');
   document.getElementById('cbtn').style.display='none';
   document.getElementById('cok').style.display='block';
   setTimeout(resetTodo,3000);
