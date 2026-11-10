@@ -540,8 +540,8 @@ async function cargarEstado(){
   var qrImg=document.getElementById('qimg');
   var qrSvg=document.getElementById('qsvg');
   var qrTest=new Image();
-  qrTest.onload=function(){qrImg.src='qr.png';qrImg.style.display='block';qrSvg.style.display='none';};
-  qrTest.onerror=async function(){var qrS=await dbGet('rifa_dic_qr');if(qrS){qrImg.src=qrS;qrImg.style.display='block';qrSvg.style.display='none';}};
+  qrTest.onload=function(){qrImg.src='qr.png';qrImg.style.display='block';if(qrSvg)qrSvg.style.display='none';};
+  qrTest.onerror=async function(){var qrS=await dbGet('rifa_dic_qr');if(qrS){qrImg.src=qrS;qrImg.style.display='block';if(qrSvg)qrSvg.style.display='none';}};
   qrTest.src='qr.png';
 }
 cargarEstado();

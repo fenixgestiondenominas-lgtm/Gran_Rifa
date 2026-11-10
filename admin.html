@@ -394,17 +394,27 @@ function toThumb(url) {
 
 // ── login / sesión ──
 async function login() {
-  const k = $('pass').value.trim(); if (!k) return;
-  $('lerr').textContent = 'Verificando…';
+  const k = $('pass').value.trim(); if (!k) { $('lerr').textContent = 'Escribe la contraseña.'; return; }
+  const btn = document.querySelector('.lbox button'); if (btn) btn.disabled = true;
+  $('lerr').style.color = ''; $('lerr').textContent = 'Verificando…';
+  const fallo = m => { $('lerr').textContent = m; };
   try {
-    const res = await fetch(SCRIPT_URL + '?action=list&key=' + encodeURIComponent(k), { redirect: 'follow', cache: 'no-store' });
-    const json = await res.json();
-    if (!json.ok) { $('lerr').textContent = (json.error && json.error !== 'No autorizado') ? 'Error del script: ' + json.error : 'Contraseña incorrecta.'; if (!json.error || json.error === 'No autorizado') $('pass').value = ''; return; }
-    if (!json.admin) { $('lerr').textContent = 'Contraseña incorrecta (si ya la cambiaste en Código.gs, vuelve a implementar el script como Nueva versión).'; $('pass').value = ''; return; }
-    KEY = k; registros = json.data || []; pullConfig();
+    let res, txt, json;
+    try { res = await fetch(SCRIPT_URL + '?action=list&key=' + encodeURIComponent(k), { redirect: 'follow', cache: 'no-store' }); txt = await res.text(); }
+    catch (e) { return fallo('No hay conexión con el servidor (Apps Script). Revisa internet y que la implementación sea "Cualquier persona".'); }
+    try { json = JSON.parse(txt); }
+    catch (e) { return fallo('El servidor no devolvió datos válidos. En Apps Script: ejecuta autorizar() una vez, y luego Implementar > Administrar implementaciones > Nueva versión, con acceso "Cualquier persona".'); }
+    if (!json.ok) return fallo(json.error === 'No autorizado' ? 'Contraseña incorrecta.' : 'Error del script: ' + json.error);
+    if (!json.admin) {
+      $('pass').value = '';
+      return fallo(json.v ? 'Contraseña incorrecta. Debe ser igual a ADMIN_KEY en Código.gs.' : 'Contraseña rechazada: el script publicado está DESACTUALIZADO o tiene otra clave. Pega el nuevo Código.gs, guarda y usa Implementar > Administrar implementaciones > lápiz > Nueva versión.');
+    }
+    KEY = k; registros = json.data || [];
     $('lerr').textContent = ''; $('login').hidden = true; $('app').hidden = false;
-    render(); toast('Registros cargados correctamente');
-  } catch (e) { $('lerr').textContent = 'No se pudo conectar: ' + e.message; }
+    try { render(); toast('Registros cargados correctamente'); } catch (e) { console.error(e); toast('Sesión iniciada, pero hubo un error al dibujar: ' + e.message, true); }
+    pullConfig();
+  } catch (e) { fallo('Error inesperado: ' + e.message); }
+  finally { if (btn) btn.disabled = false; }
 }
 function salir() { KEY = ''; $('app').hidden = true; $('login').hidden = false; $('pass').value = ''; registros = []; }
 function toggleSide() { $('side').classList.toggle('c'); }
