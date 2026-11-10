@@ -270,10 +270,10 @@ const PRECIO = new Proxy({}, { get: (_, k) => { try { const m = conf.nums.mods[k
 const modsActivas = () => { try { return Object.entries(conf.nums.mods).filter(([, m]) => m.on).map(([k]) => k); } catch (e) { return ['x1', 'x3']; } };
 const cif = k => [1, 2, 3].includes(+conf.nums.mods[k].cifras) ? +conf.nums.mods[k].cifras : 3;   // 1 = 0–9 · 2 = 00–99 · 3 = 000–999
 const rangoDe = k => '0'.repeat(cif(k)) + '–' + '9'.repeat(cif(k));
-// x1 = 1 número por boleto. xN = el cliente elige libremente N números del rango: máximo floor(rango/N) boletos. Igual que index.html
-const nBol = k => { const n = +k.slice(1), R = Math.pow(10, cif(k)); return n <= 1 ? R : Math.floor(R / n); };
+// x1 = 1 número por boleto (todo el rango). xN = TALONARIO de N números: floor((rango-1)/N) boletos (x3 con 3 cifras = 333). Igual que index.html
+const nBol = k => { const n = +k.slice(1), R = Math.pow(10, cif(k)); return n <= 1 ? R : Math.floor((R - 1) / n); };
 const metaDe = k => nBol(k) * (Number(conf.nums.mods[k].precio) || 0);
-const subMod = k => { const n = +k.slice(1); return n === 1 ? `1 número por boleto · ${usd(PRECIO[k])} · ${nBol(k)} boletos · Rango ${rangoDe(k)}` : `${n} números a elección · ${usd(PRECIO[k])} · hasta ${fmt(nBol(k))} boletos · Cada número en ${rangoDe(k)}`; };
+const subMod = k => { const n = +k.slice(1); return n === 1 ? `1 número por boleto · ${usd(PRECIO[k])} · ${nBol(k)} boletos · Rango ${rangoDe(k)}` : `Talonario de ${n} números · ${usd(PRECIO[k])} · ${fmt(nBol(k))} talonarios · Rango ${rangoDe(k)}`; };
 </script>
 
 <div id="login">
@@ -788,7 +788,7 @@ function togMod(k) {
   m.on = !m.on; drawNav(); drawCfg();
 }
 function modRow(k) {
-  const m = conf.nums.mods[k], P = 'nums.mods.' + k, N = +k.slice(1), rg = rangoDe(k) + ' · ' + (N === 1 ? nBol(k) + ' números' : 'hasta ' + fmt(nBol(k)) + ' boletos de ' + N + ' números a elección');
+  const m = conf.nums.mods[k], P = 'nums.mods.' + k, N = +k.slice(1), rg = rangoDe(k) + ' · ' + (N === 1 ? nBol(k) + ' números' : fmt(nBol(k)) + ' talonarios de ' + N + ' números');
   return `<div class="mrow ${m.on ? 'on' : ''}"><div class="mh"><button class="sw ${m.on ? 'on' : ''}" role="switch" aria-checked="${m.on}" aria-label="Modalidad ${k}" onclick="togMod('${k}')"></button>
     <div style="flex:1;min-width:150px"><b>Modalidad ${k}</b><span class="hint">${m.on ? `${rg} · ${usd(Number(m.precio) || 0)}` : 'Inactiva'}</span></div>${m.on ? '' : `<button class="bgh" onclick="togMod('${k}')">Activar</button>`}</div>
     ${m.on ? `<div class="mbody">${fl('Nombre o descripción', P + '.nombre', 'Ej. Combo de 3 números')}
@@ -873,7 +873,7 @@ function verDetalle(id) {
   const fac = `<div class="fac">
     <div class="fh"><div><h3>FACTURA</h3><small>Gran Rifa de Premios</small></div><div class="fn"><small>N°</small>${esc(r.id)}</div></div>
     <div class="fb">${fr('Nombre', esc(r.nombre))}${fr('Celular', esc(r.pais || '—'))}${fr('Correo', esc(r.correo))}
-      ${fr('Rifa', pr === 'x1' ? 'x1 · 1 número' : pr + ' · ' + pr.slice(1) + ' números a elección')}${gpr ? fr('Gran premio', esc(gpr.valor)) : ''}
+      ${fr('Rifa', pr === 'x1' ? 'x1 · 1 número' : 'Talonario ' + pr + ' · ' + pr.slice(1) + ' números')}${gpr ? fr('Gran premio', esc(gpr.valor)) : ''}
       ${fr('Números', `<span class="nm">${chips}</span>`)}${fr('Método', esc(metNom(r)))}${fr('Fecha', esc(fh.dia + (fh.hora !== '—' ? ' · ' + fh.hora : '')))}
       <div class="ft"><span>Total pagado</span><b>${usd(totR(r))}</b></div>
       <p class="fg">¡Gracias por participar!</p></div></div>`;

@@ -224,7 +224,7 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
   <div class="ct reveal">
     <span class="st">🎟️ Números</span>
     <h2 class="sh">Elige tu número</h2>
-    <p class="ss">¿Cuántos números quieres elegir? Tú escoges cuáles.</p>
+    <p class="ss">¿Cuántos números quieres elegir?</p>
     <div class="xw">
       <span style="font-weight:800;font-size:.9rem;color:var(--gr)">¿Cuántos?</span>
     </div>
@@ -377,19 +377,22 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 // ── GOOGLE SHEETS — pega tu URL aquí ──
 var GSHEET_URL='https://script.google.com/macros/s/AKfycbxDe8pjizbvsc7_V1GoR7fFTVPb8Dtj77ey5ZAEW_KmEgpQIHt0XCX1THyVSuqtxEu2/exec'; // MISMO backend que admin.html (SCRIPT_URL). Si cambias uno, cambia el otro.
 // ────────────────────────────────────────
-var MONEDA='COP', regData={}, compImg=null,  modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10, selNums=[];
+var MONEDA='COP', regData={}, compImg=null, selId=null, modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10;
 // Modalidades (mismos valores por defecto que admin.html; el admin las publica y aplicarConfig() las sobrescribe)
-//  x1 = 1 número · xN (N>=2) = el cliente ELIGE LIBREMENTE N números, cada uno dentro del rango
+//  x1 = 1 número por boleto · xN (N>=2) = TALONARIO: cada boleto trae N números repartidos en el rango
 //  cifras 1 -> 0–9 · cifras 2 -> 00–99 · cifras 3 -> 000–999
 var MODS={x1:{on:true,cifras:2,precio:25000},x2:{on:false,cifras:3,precio:40000},x3:{on:true,cifras:3,precio:50000},x4:{on:false,cifras:3,precio:60000},x5:{on:false,cifras:3,precio:75000}};
 function fmt(n){return String(Math.round(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g,'.');}   // 25000 -> 25.000
 function pad(n,c){return String(n).padStart(c,'0');}
 function nDe(k){return +k.slice(1);}
 function rangoN(k){return Math.pow(10,MODS[k].cifras);}
-// máximo de boletos posibles: rango / N números por boleto
-function nBol(k){var n=nDe(k),R=rangoN(k);return n<=1?R:Math.floor(R/n);}
+// cantidad de boletos: x1 = todo el rango; xN = floor((rango-1)/N)  (x3 con 3 cifras -> 333 talonarios)
+function nBol(k){var n=nDe(k),R=rangoN(k);return n<=1?R:Math.floor((R-1)/n);}
+// números que trae el boleto i:  i, i+B, i+2B ...  (ej. x3: 001 -> 001, 334, 667)
+function numsDe(k,i){var n=nDe(k);if(n<=1)return [i];var B=nBol(k),a=[];for(var j=0;j<n;j++)a.push(i+j*B);return a;}
+function idDe(k,nums){return nDe(k)<=1?nums[0]:Math.min.apply(null,nums);}
 function modsOn(){var a=[];for(var n=1;n<=5;n++)if(MODS['x'+n].on)a.push('x'+n);return a.length?a:['x1'];}
-function etiquetaMod(k){var n=nDe(k);return n>1?'Elige '+n+' números':'Número individual';}
+function etiquetaMod(k){var n=nDe(k);return n>1?'Talonario x'+n:'Número individual';}
 modo=modsOn()[0];
 var _metodo='nubank'; // único método de pago activo
 
@@ -494,29 +497,34 @@ async function dbSet(key,val){
 // ── GRILLA según la modalidad elegida (x1 = números, xN = talonarios) ──
 var grid=document.getElementById('grid');
 function ajustarCols(){
-  var w=window.innerWidth, c=CFGCOLS;
-  if(w<400) c=Math.min(c,8);
+  var w=window.innerWidth, tal=nDe(modo)>1, c=CFGCOLS;
+  if(tal) c=Math.min(c, w<420?4:(w<600?5:(w<800?6:c))); else if(w<400) c=Math.min(c,8);
   grid.style.gridTemplateColumns='repeat('+c+',minmax(0,1fr))';
 }
 function construirGrid(){
-  var C=MODS[modo].cifras, R=rangoN(modo), html='';
-  for(var i=0;i<R;i++) html+='<button type="button" class="nb disp" data-i="'+i+'">'+pad(i,C)+'</button>';
+  var n=nDe(modo), C=MODS[modo].cifras, tal=n>1, B=nBol(modo), ini=tal?1:0, fin=tal?B:B-1, html='';
+  for(var i=ini;i<=fin;i++){
+    html+='<button type="button" class="nb'+(tal?' tal':'')+' disp" data-i="'+i+'">';
+    if(tal){var ns=numsDe(modo,i);for(var j=0;j<ns.length;j++)html+='<span'+(j?'':' class="n1"')+'>'+pad(ns[j],C)+'</span>';}
+    else html+=pad(i,C);
+    html+='</button>';
+  }
   grid.innerHTML=html; ajustarCols(); aplicarEstado();
 }
 function pintarTitulo(){
   var n=nDe(modo), C=MODS[modo].cifras, mn=pad(0,C), mx=pad(rangoN(modo)-1,C);
   var t=document.getElementById('gtit'), s=document.getElementById('gsub');
   if(t) t.textContent=etiquetaMod(modo);
-  if(s) s.textContent=n>1 ? 'Elige tú mismo tus '+n+' números, cada uno entre el '+mn+' y el '+mx+'. Toca los números que quieras.'
+  if(s) s.textContent=n>1 ? 'Cada boleto incluye '+n+' números entre el '+mn+' y el '+mx+'. Haz clic o toca un boleto para seleccionarlo.'
                          : 'Elige un número entre el '+mn+' y el '+mx+'. Haz clic o toca para seleccionarlo.';
 }
 function pintarHero(){
   var hs=document.querySelectorAll('.hsi'); if(hs.length<2) return;
   var k=modsOn()[0], n=nDe(k), C=MODS[k].cifras;
-    hs[0].querySelector('.big').textContent=fmt(rangoN(k));
-  hs[0].querySelector('.sm').textContent='Números ('+pad(0,C)+'–'+pad(rangoN(k)-1,C)+')';
+  hs[0].querySelector('.big').textContent=fmt(nBol(k));
+  hs[0].querySelector('.sm').textContent=(n>1?'Talonarios x'+n:'Números')+' ('+pad(0,C)+'–'+pad(rangoN(k)-1,C)+')';
   hs[1].querySelector('.big').textContent='$'+fmt(MODS[k].precio);
-  hs[1].querySelector('.sm').textContent='COP'+(n>1?' por '+n+' números':' por número');
+  hs[1].querySelector('.sm').textContent='COP'+(n>1?' por talonario':' por número');
 }
 function construirModos(){
   var xw=document.querySelector('.xw'), old=xw.querySelectorAll('.xb'), i;
@@ -527,20 +535,20 @@ function construirModos(){
     bt.textContent=k+' — '+formatCOP(MODS[k].precio); bt.onclick=function(){ setModo(k); }; xw.appendChild(bt);
   });
 }
-function setModo(k){ modo=k; selNums=[]; construirModos(); pintarTitulo(); construirGrid(); updBar(); }
+function setModo(k){ modo=k; selId=null; construirModos(); pintarTitulo(); construirGrid(); updBar(); }
 
 // Estado compartido (Google Sheet). Cada registro pertenece a la modalidad xN donde N = cantidad de números
 // (así lo clasifica también admin.html), por eso x1 (00–99) y x3 (000–999) NO se pisan entre sí.
 function aplicarEstado(){
-  var n=nDe(modo), ocup={}, r, k;
-  for(r=0;r<REGS.length;r++){ if(REGS[r].nums.length===n){ for(k=0;k<REGS[r].nums.length;k++) ocup[REGS[r].nums[k]]=REGS[r].est; } }
+  var n=nDe(modo), ocup={}, r;
+  for(r=0;r<REGS.length;r++){ if(REGS[r].nums.length===n) ocup[idDe(modo,REGS[r].nums)]=REGS[r].est; }
   var bs=grid.children, d=0, rs=0, v=0, perdio=false;
   for(var i=0;i<bs.length;i++){
-    var b=bs[i], id=+b.getAttribute('data-i'), st=ocup[id]||'disp', pos=selNums.indexOf(id);
-    if(st!=='disp' && pos>-1){ selNums.splice(pos,1); perdio=true; }
+    var b=bs[i], id=+b.getAttribute('data-i'), st=ocup[id]||'disp';
+    if(st!=='disp' && selId===id){ selId=null; perdio=true; }
     b.classList.remove('disp','vend','rsv','sel');
     b.classList.add(st==='vend'?'vend':(st==='res'?'rsv':'disp'));
-    if(selNums.indexOf(id)>-1) b.classList.add('sel');
+    if(selId===id) b.classList.add('sel');
     b.disabled=(st!=='disp');
     if(st==='vend') v++; else if(st==='res') rs++; else d++;
   }
@@ -548,7 +556,7 @@ function aplicarEstado(){
   document.getElementById('cv').textContent=v;
   document.getElementById('cr').textContent=rs;
   aplicarFiltro();
-  if(perdio){ updBar(); alert('Uno de tus números acaba de ser tomado por otra persona. Elige otro.'); }
+  if(perdio){ updBar(); alert('Ese boleto acaba de ser tomado por otra persona. Elige otro.'); }
 }
 
 // Cargar estado — desde el Google Sheet (compartido entre TODOS los visitantes)
@@ -633,7 +641,7 @@ function aplicarConfig(c){
   var hs=document.querySelectorAll('.hsi');
   if(hs.length>=3 && pr.length){ hs[2].querySelector('.big').textContent=pr[0].valor; hs[2].querySelector('.sm').textContent='Gran Premio'; }
   // La modalidad/rango pudo cambiar: se reconstruyen botones y grilla con lo que publicó el admin
-  selNums=[]; construirModos(); pintarTitulo(); construirGrid(); updBar();
+  selId=null; construirModos(); pintarTitulo(); construirGrid(); updBar();
   var pm=document.getElementById('pmto'); if(pm) pm.textContent=formatCOP(MODS[modo].precio);
 }
 cargarConfigAdmin();
@@ -641,36 +649,29 @@ cargarConfigAdmin();
 
 function formatCOP(n){return '$'+fmt(n)+' COP';}
 
-// Un registro = UN boleto: xN = N números elegidos libremente por el cliente
-function selNum(i){
-  var n=nDe(modo), pos=selNums.indexOf(i);
-  if(pos>-1) selNums.splice(pos,1);
-  else{
-    if(selNums.length>=n){ alert('Este boleto incluye '+n+' número'+(n>1?'s':'')+'. Quita uno para elegir otro.'); return; }
-    selNums.push(i);
-  }
+// Un registro = UN boleto de la modalidad elegida (x1: 1 número · xN: talonario de N números)
+function selBoleto(i){
+  selId=(selId===i)?null:i;
   var bs=grid.children;
-  for(var j=0;j<bs.length;j++) bs[j].classList.toggle('sel', selNums.indexOf(+bs[j].getAttribute('data-i'))>-1);
+  for(var j=0;j<bs.length;j++) bs[j].classList.toggle('sel', +bs[j].getAttribute('data-i')===selId);
   updBar();
 }
 grid.addEventListener('click',function(e){
   var b=e.target.closest?e.target.closest('.nb'):null;
   if(!b||b.disabled) return;
-  selNum(+b.getAttribute('data-i'));
+  selBoleto(+b.getAttribute('data-i'));
 });
 window.addEventListener('resize',ajustarCols);
 
 function updBar(){
-  var bar=document.getElementById('selbar'), n=nDe(modo);
-  if(!selNums.length){bar.classList.remove('on');document.getElementById('numsel').textContent='Elige tus números arriba primero';return;}
+  var bar=document.getElementById('selbar');
+  if(selId===null){bar.classList.remove('on');document.getElementById('numsel').textContent='Elige tus números arriba primero';return;}
   bar.classList.add('on');
-  var C=MODS[modo].cifras, ns=selNums.slice().sort(function(a,b){return a-b;}), h='', t='';
+  var C=MODS[modo].cifras, ns=numsDe(modo,selId), h='', t='';
   for(var i=0;i<ns.length;i++){ h+='<span class="sch">'+pad(ns[i],C)+'</span>'; t+=(i?', ':'')+pad(ns[i],C); }
-  var falta=n-ns.length;
-  if(falta>0) h+='<span style="font-size:.8rem;font-weight:800;color:var(--gr);align-self:center">Faltan '+falta+'</span>';
   document.getElementById('schips').innerHTML=h;
   document.getElementById('stot').textContent=formatCOP(MODS[modo].precio);
-  document.getElementById('numsel').textContent=t+(falta>0?' (faltan '+falta+')':'');
+  document.getElementById('numsel').textContent=t;
 }
 
 function aplicarFiltro(){
@@ -698,9 +699,8 @@ async function registrar(){
   if(cod!=='+57'&&(raw.length<6||raw.length>15)){alert('Revisa tu número de celular, sin el código del país');return;}
   if(!c||c.indexOf('@')<0){alert('Escribe un correo válido');return;}
   if(!inv){alert('Cuéntanos quién te invitó o cómo conociste la rifa');return;}
-  var nReq=nDe(modo);
-  if(selNums.length!==nReq){alert(nReq>1?('Debes elegir exactamente '+nReq+' números. Llevas '+selNums.length+'.'):'Elige un número');return;}
-  var C=MODS[modo].cifras, nums=selNums.slice().sort(function(a,b){return a-b;}).map(function(x){return pad(x,C);});
+  if(selId===null){alert('Elige un boleto');return;}
+  var C=MODS[modo].cifras, nums=numsDe(modo,selId).map(function(x){return pad(x,C);});
   var tot=MODS[modo].precio;
   regData={nombre:n,pais:p,correo:c,invito:inv,nums:nums,total:tot,modo:modo};
   var btnR=document.querySelector('.br');
@@ -720,8 +720,8 @@ async function registrar(){
   rl.push({id:res.id,nombre:n,pais:p,correo:c,invito:inv,nums:nums,total:tot,estado:'pendiente',metodo:_metodo,fecha:new Date().toLocaleString('es-CO'),comprobante:null});
   await dbSet('rifa_dic_reg',rl);
   // Reflejar ya la reserva en la grilla (queda RESERVADO hasta que se confirme el pago)
-  REGS.push({nums:selNums.slice(),est:'res'});
-  selNums=[]; aplicarEstado(); updBar();
+  REGS.push({nums:numsDe(modo,selId),est:'res'});
+  selId=null; aplicarEstado(); updBar();
   document.getElementById('fcon').style.display='none';
   document.getElementById('exito').style.display='block';
   document.getElementById('exmsg').textContent='Registro guardado. Abriendo pago en 1 segundo...';
@@ -804,7 +804,7 @@ function resetTodo(){
   document.getElementById('ino').value='';document.getElementById('icel').value='';document.getElementById('ico').value='';document.getElementById('iinv').value='';
   document.getElementById('numsel').textContent='Elige tus números arriba primero';
   document.getElementById('fcon').style.display='block';document.getElementById('exito').style.display='none';
-  selNums=[]; updBar(); aplicarEstado(); cargarEstado();
+  selId=null; updBar(); aplicarEstado(); cargarEstado();
   document.getElementById('cprev').style.display='none';document.getElementById('cbtn').style.display='none';
   document.getElementById('cok').style.display='none';document.getElementById('czni').style.opacity='1';
   document.getElementById('czn').style.borderColor='#ddd';compImg=null;
