@@ -67,7 +67,7 @@ h1.t{font-size:26px;font-weight:800;letter-spacing:-.5px}
 .th{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
 .th h2{font-size:17px;font-weight:700}
 .sc{overflow-x:auto}
-.g{display:grid;grid-template-columns:minmax(140px,1.2fr) 120px minmax(180px,1.5fr) minmax(130px,1fr) 96px 116px 104px 92px 176px;gap:12px;align-items:center;padding:12px;min-width:1180px}
+.g{display:grid;grid-template-columns:minmax(140px,1.2fr) 120px minmax(180px,1.5fr) minmax(150px,1fr) minmax(130px,1fr) 96px 116px 104px 92px 176px;gap:12px;align-items:center;padding:12px;min-width:1340px}
 .g.hd{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);padding-top:10px;padding-bottom:10px}
 .g.rw{border-bottom:1px solid #1B232D;border-radius:10px}.g.rw:hover{background:#1A222C}
 .tx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -263,7 +263,7 @@ h1.t{font-size:26px;font-weight:800;letter-spacing:-.5px}
 </head>
 <body>
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDe8pjizbvsc7_V1GoR7fFTVPb8Dtj77ey5ZAEW_KmEgpQIHt0XCX1THyVSuqtxEu2/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyv62EqYTk2a__tn8xXUywTTVqDBjDPCZGzZWvwIwh7lD0AkV56C4qyp_SmEQArrrMl/exec';
 let KEY = '';
 const fmt = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');   // 25000 -> 25.000
 const PRECIO = new Proxy({}, { get: (_, k) => { try { const m = conf.nums.mods[k]; if (m && Number(m.precio) > 0) return Number(m.precio); } catch (e) {} return { x1: 25000, x3: 50000 }[k] || 0; } });
@@ -318,10 +318,11 @@ const subMod = k => { const n = +k.slice(1); return n === 1 ? `1 número por bol
           <div class="sc"><div class="g g5 hd"><span>Nombre</span><span>Fecha</span><span>Tiempo</span><span>Estado</span><span>Total</span></div><div id="hrows"></div></div>
         </section>
         <section class="dias" id="dias" hidden></section>
+        <section class="tbl" id="invs" hidden></section>
         <section class="tbl" id="tabla">
           <div class="th"><h2 id="th-t">Registros</h2><button class="bgh del" id="del-all" onclick="borrarTodo()" title="Borrar toda la lista" hidden></button></div>
           <div class="sc">
-            <div class="g hd"><span>Nombre</span><span>Celular</span><span>Correo</span><span>Números</span><span>Total</span><span>Método</span><span>Estado</span><span>Fecha</span><span>Acciones</span></div>
+            <div class="g hd"><span>Nombre</span><span>Celular</span><span>Correo</span><span>Invitó</span><span>Números</span><span>Total</span><span>Método</span><span>Estado</span><span>Fecha</span><span>Acciones</span></div>
             <div id="rows"></div>
           </div>
         </section>
@@ -424,7 +425,7 @@ function salir() { KEY = ''; $('app').hidden = true; $('login').hidden = false; 
 function toggleSide() { $('side').classList.toggle('c'); }
 
 // ── menú ──
-const NAV = () => [['dash', 'Inicio', 'grid'], ...modsActivas().map(k => [k, 'Boletos ' + k, 'tick']), ['fin', 'Finanzas', 'chart'], ['elim', 'Eliminados', 'trash'], ['cfg', 'Configuración', 'set']];
+const NAV = () => [['dash', 'Inicio', 'grid'], ...modsActivas().map(k => [k, 'Boletos ' + k, 'tick']), ['inv', 'Invitaciones', 'users'], ['fin', 'Finanzas', 'chart'], ['elim', 'Eliminados', 'trash'], ['cfg', 'Configuración', 'set']];
 const metNom = r => r.metodo === 'nubank' ? 'Nu / Bre-B' : ((PLAT[r.metodo] || {}).n || r.metodo || 'Binance Pay');
 function drawNav() {
   const nE = registros.filter(esElim).length;
@@ -459,8 +460,25 @@ async function apiBorrar(id) {
   const json = await res.json(); if (json.ok === false) throw new Error(json.error || 'No se pudo borrar');
   registros = registros.filter(x => String(x.id) !== String(id));
 }
+async function apiCorreo(to, asunto, cuerpo) {
+  const res = await fetch(SCRIPT_URL + '?action=sendmail&key=' + encodeURIComponent(KEY) + '&to=' + encodeURIComponent(to) + '&subject=' + encodeURIComponent(asunto) + '&body=' + encodeURIComponent(cuerpo), { redirect: 'follow', cache: 'no-store' });
+  let j; try { j = await res.json(); } catch (e) { throw new Error('El script no tiene el envío de correos instalado (pega correos.gs)'); }
+  if (!j.ok) throw new Error(j.error || 'No se pudo enviar el correo');
+}
+const plantilla = (t, r) => String(t || '').replace(/\[NOMBRE\]/g, r.nombre || '').replace(/\[NUMERO\]/g, nums(r).join(', ')).replace(/\[TOTAL\]/g, usd(totR(r)));
 async function setEstado(id, est, msg) {
-  try { await apiEstado(id, est); render(); toast(msg || (est === 'publicado' ? 'Pago aprobado' : 'Registro rechazado')); }
+  const r = registros.find(x => String(x.id) === String(id));
+  try { await apiEstado(id, est); render(); }
+  catch (e) { return toast('Error: ' + e.message, true); }
+  if (est === 'publicado' && !msg && r && conf.mail.cliente.on && /^\S+@\S+\.\S+$/.test(String(r.correo || '').trim())) {
+    try { await apiCorreo(r.correo.trim(), plantilla(conf.mail.cliente.asunto, r), plantilla(conf.mail.cliente.msg, r)); toast('Pago aprobado y correo enviado a ' + r.correo); }
+    catch (e) { toast('Pago aprobado, pero el correo falló: ' + e.message, true); }
+  } else toast(msg || (est === 'publicado' ? 'Pago aprobado' : 'Registro rechazado'));
+}
+async function probarCorreo() {
+  const to = String(conf.mail.admin || '').trim();
+  if (!/^\S+@\S+\.\S+$/.test(to)) return toast('Escribe primero tu correo', true);
+  try { await apiCorreo(to, 'Prueba · Gran Rifa', 'Si lees esto, el envío de correos funciona ✅'); toast('Correo de prueba enviado a ' + to); }
   catch (e) { toast('Error: ' + e.message, true); }
 }
 const prevEst = r => String(r.estado || 'pendiente').toLowerCase();
@@ -538,6 +556,7 @@ function render() {
   const V = {
     dash:['Inicio','Resumen de registros y pagos de la Gran Rifa de Premios.'],
     ...Object.fromEntries(['x1', 'x2', 'x3', 'x4', 'x5'].map(k => [k, ['Boletos ' + k, subMod(k)]])),
+    inv:['Invitaciones','Quién invitó a cada participante y cuántos registros trajo.'],
     reg:['Usuarios / Registros','Todos los registros de ambas rifas.'],
     cfg:['Configuración del Sistema','Gestiona las reglas, métodos de pago y notificaciones'],
     elim:['Eliminados','Registros eliminados. Puedes restaurarlos o borrarlos para siempre.'],
@@ -545,11 +564,12 @@ function render() {
   };
   $('h-t').textContent = V[active][0]; $('h-s').textContent = V[active][1];
   const lista = (active === 'elim' ? elim : all).filter(r => (/^x\d$/.test(active) ? parte(r) === active : true) &&
-    (!q || (String(r.nombre) + r.correo + r.pais + r.id + nums(r).join(' ')).toLowerCase().includes(q)));
+    (!q || (String(r.nombre) + r.correo + r.pais + r.id + (r.invito || '') + nums(r).join(' ')).toLowerCase().includes(q)));
   $('kpis').hidden = !(active === 'dash');
   $('fin').hidden = active !== 'dash'; $('fsplit').hidden = active !== 'fin';
   $('hist').hidden = active !== 'dash';
   $('dias').hidden = active !== 'fin'; if (active === 'fin') drawDias();
+  $('invs').hidden = active !== 'inv'; if (active === 'inv') drawInv();
   $('cfgv').hidden = active !== 'cfg'; if (active === 'cfg') drawCfg();
   $('tabla').hidden = !(/^x\d$/.test(active) || active === 'reg' || active === 'elim');
   $('th-t').textContent = V[active][0] + ' · ' + lista.length + (lista.length === 1 ? ' registro' : ' registros');
@@ -561,6 +581,7 @@ function render() {
       <div class="tx" style="font-weight:600" title="${esc(r.nombre)}">${esc(r.nombre)}</div>
       <div class="tx" style="color:var(--soft)">${esc(r.pais || '—')}</div>
       <div class="tx" style="color:var(--soft)" title="${esc(r.correo)}">${esc(r.correo)}</div>
+      <div class="tx" style="color:var(--soft)" title="${esc(r.invito || '')}">${esc(r.invito || '—')}</div>
       <div class="tk">${nums(r).map(t => `<span>${esc(t)}</span>`).join('') || '—'}</div>
       <div style="font-weight:700">${usd(totR(r))}</div>
       <div><span class="mt">${esc(metNom(r))}</span></div>
@@ -574,6 +595,23 @@ function render() {
         <button class="ic del" data-a="del" data-id="${id}" aria-label="Mover a Eliminados" title="Mover a Eliminados">${ic('trash', 16)}</button>`}
       </div></div>`;
   }).join('') : '<div class="empty">No hay registros para mostrar.</div>';
+}
+
+// ── invitaciones: quién invitó a quién ──
+function drawInv() {
+  const all = registros.filter(r => !esElim(r)), mp = new Map();
+  all.forEach(r => {
+    const raw = String(r.invito || '').trim(), key = raw ? raw.toLowerCase() : '\u0000';
+    if (!mp.has(key)) mp.set(key, { n: raw || 'Sin dato', rs: [] });
+    mp.get(key).rs.push(r);
+  });
+  const L = [...mp.values()].sort((a, b) => b.rs.length - a.rs.length || a.n.localeCompare(b.n));
+  const cnt = (g, e) => g.rs.filter(r => estado(r) === e).length;
+  $('invs').innerHTML = `<div class="th"><h2>Invitaciones · ${L.length} ${L.length === 1 ? 'origen' : 'orígenes'}</h2></div>
+    <div class="sc"><div class="g g5 hd"><span>Invitó / cómo conoció</span><span>Registros</span><span>Pagados</span><span>Pendientes</span><span>Cobrado</span></div>
+    ${L.length ? L.map(g => `<div class="g g5 rw"><div><b style="font-weight:700">${esc(g.n)}</b><div style="font-size:12px;color:var(--mut);margin-top:3px;white-space:normal">${esc(g.rs.map(r => r.nombre).join(', '))}</div></div>
+      <div style="font-weight:700">${g.rs.length}</div><div style="color:var(--green);font-weight:700">${cnt(g, 'Pagado')}</div><div style="color:var(--amber);font-weight:700">${cnt(g, 'Pendiente')}</div>
+      <div style="font-weight:700">${usd(g.rs.filter(r => estado(r) === 'Pagado').reduce((a, r) => a + totR(r), 0))}</div></div>`).join('') : '<div class="empty">Aún no hay registros.</div>'}</div>`;
 }
 
 // ── gráfico: ventas por día ──
@@ -844,7 +882,8 @@ function drawCfg() {
     mail: card('mail', 'Alertas para el Administrador', 'Recibe un aviso a tu correo cada vez que un usuario registre un boleto o suba un comprobante.',
         fl('Tu correo electrónico (Gmail / Hotmail)', 'mail.admin', 'tucorreo@gmail.com', null, 'email') +
         `<div class="swr"><button class="sw ${conf.mail.alertas ? 'on' : ''}" role="switch" aria-checked="${conf.mail.alertas}" aria-label="Activar alertas" onclick="cfgSet('mail.alertas',${!conf.mail.alertas})"></button>Activar alertas por correo cuando haya un nuevo registro</div>
-         <div class="ej"><b>Así te llegará:</b><br>“¡Nuevo pago recibido! El cliente Carlos Gómez registró el boleto #02 en Boletos x1. Revisa el panel para aprobarlo.”</div>`) +
+         <div class="ej"><b>Así te llegará:</b><br>“¡Nuevo pago recibido! El cliente Carlos Gómez registró el boleto #02 en Boletos x1. Revisa el panel para aprobarlo.”</div>
+         <div><button class="bgh" onclick="probarCorreo()">${ic('mail', 16)}Enviar correo de prueba</button></div>`) +
       `<section class="cc"><div class="cch"><i>${ic('tick', 20)}</i><div><b>Correo de Confirmación al Cliente (Al publicar)</b><small>Correo corto que se le enviará al cliente únicamente cuando hagas clic en “Aprobar / Publicar” su pago.</small></div>
         <button class="sw ${conf.mail.cliente.on ? 'on' : ''}" role="switch" aria-checked="${conf.mail.cliente.on}" aria-label="Activar confirmación al cliente" onclick="cfgSet('mail.cliente.on',${!conf.mail.cliente.on})"></button></div>
         ${fl('Asunto del correo', 'mail.cliente.asunto', '¡Tu número [NUMERO] ha sido confirmado!')}
@@ -872,7 +911,7 @@ function verDetalle(id) {
   const chips = nums(r).map(n => `<i>${esc(n)}</i>`).join('') || '—';
   const fac = `<div class="fac">
     <div class="fh"><div><h3>FACTURA</h3><small>Gran Rifa de Premios</small></div><div class="fn"><small>N°</small>${esc(r.id)}</div></div>
-    <div class="fb">${fr('Nombre', esc(r.nombre))}${fr('Celular', esc(r.pais || '—'))}${fr('Correo', esc(r.correo))}
+    <div class="fb">${fr('Nombre', esc(r.nombre))}${fr('Celular', esc(r.pais || '—'))}${fr('Correo', esc(r.correo))}${fr('Invitó / cómo conoció', esc(r.invito || '—'))}
       ${fr('Rifa', pr === 'x1' ? 'x1 · 1 número' : 'Talonario ' + pr + ' · ' + pr.slice(1) + ' números')}${gpr ? fr('Gran premio', esc(gpr.valor)) : ''}
       ${fr('Números', `<span class="nm">${chips}</span>`)}${fr('Método', esc(metNom(r)))}${fr('Fecha', esc(fh.dia + (fh.hora !== '—' ? ' · ' + fh.hora : '')))}
       <div class="ft"><span>Total pagado</span><b>${usd(totR(r))}</b></div>
@@ -926,8 +965,8 @@ function buildCSV() {
   }
   if (exp.par) out.push([['TOTALES POR MODALIDAD'], ['Modalidad', 'Precio', 'Registros', 'Pagados', 'Pendientes', 'Rechazados', 'Cobrado', 'Por aprobar', 'Meta', '% de la meta'],
     ...exp.ks.map(k => { const rs = act.filter(r => parte(r) === k), c = suma(rs, 'Pagado'); return ['Boletos ' + k, PRECIO[k], rs.length, nEs(rs, 'Pagado'), nEs(rs, 'Pendiente'), nEs(rs, 'Rechazado'), c, suma(rs, 'Pendiente'), metaDe(k), pct(c, metaDe(k))]; })]);
-  const cols = ['id', 'parte', 'nombre', 'celular', 'correo', 'numeros', 'total', 'metodo', 'estado', 'fecha'];
-  exp.ks.filter(k => exp.sel[k]).forEach(k => out.push([['BOLETOS ' + k.toUpperCase()], cols, ...act.filter(r => parte(r) === k).map(r => [r.id, k, r.nombre, r.pais, r.correo, nums(r).join(' '), P(r), r.metodo || 'binance', estado(r), r.fecha])]));
+  const cols = ['id', 'parte', 'nombre', 'celular', 'correo', 'invito', 'numeros', 'total', 'metodo', 'estado', 'fecha'];
+  exp.ks.filter(k => exp.sel[k]).forEach(k => out.push([['BOLETOS ' + k.toUpperCase()], cols, ...act.filter(r => parte(r) === k).map(r => [r.id, k, r.nombre, r.pais, r.correo, r.invito || '', nums(r).join(' '), P(r), r.metodo || 'binance', estado(r), r.fecha])]));
   const solo = exp.ks.filter(k => exp.sel[k]), nombre = !exp.res && !exp.par && solo.length === 1 ? 'registros-' + solo[0] + '.csv' : 'rifa-' + new Date().toISOString().slice(0, 10) + '.csv';
   return { nombre, txt: out.map(sec => sec.map(ln).join('\n')).join('\n\n') };
 }
