@@ -397,9 +397,10 @@ async function login() {
   const k = $('pass').value.trim(); if (!k) return;
   $('lerr').textContent = 'Verificando…';
   try {
-    const res = await fetch(SCRIPT_URL + '?action=list&key=' + encodeURIComponent(k), {redirect:'follow'});
+    const res = await fetch(SCRIPT_URL + '?action=list&key=' + encodeURIComponent(k), { redirect: 'follow', cache: 'no-store' });
     const json = await res.json();
     if (!json.ok) { $('lerr').textContent = (json.error && json.error !== 'No autorizado') ? 'Error del script: ' + json.error : 'Contraseña incorrecta.'; if (!json.error || json.error === 'No autorizado') $('pass').value = ''; return; }
+    if (!json.admin) { $('lerr').textContent = 'Contraseña incorrecta (si ya la cambiaste en Código.gs, vuelve a implementar el script como Nueva versión).'; $('pass').value = ''; return; }
     KEY = k; registros = json.data || []; pullConfig();
     $('lerr').textContent = ''; $('login').hidden = true; $('app').hidden = false;
     render(); toast('Registros cargados correctamente');
@@ -424,7 +425,7 @@ function setQ(v) { q = v.trim().toLowerCase(); render(); }
 async function cargar() {
   $('rows').innerHTML = '<div class="empty">Cargando registros…</div>';
   try {
-    const res = await fetch(SCRIPT_URL + '?action=list&key=' + encodeURIComponent(KEY), {redirect:'follow'});
+    const res = await fetch(SCRIPT_URL + '?action=list&key=' + encodeURIComponent(KEY), { redirect: 'follow', cache: 'no-store' });
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || 'Error desconocido');
     registros = json.data || [];
@@ -435,12 +436,12 @@ async function cargar() {
   }
 }
 async function apiEstado(id, est) {
-  const res = await fetch(SCRIPT_URL + '?action=status&id=' + encodeURIComponent(id) + '&estado=' + encodeURIComponent(est) + '&key=' + encodeURIComponent(KEY), { redirect: 'follow' });
+  const res = await fetch(SCRIPT_URL + '?action=status&id=' + encodeURIComponent(id) + '&estado=' + encodeURIComponent(est) + '&key=' + encodeURIComponent(KEY), { redirect: 'follow', cache: 'no-store' });
   const json = await res.json(); if (json.ok === false) throw new Error(json.error || 'No se pudo actualizar');
   const r = registros.find(x => String(x.id) === String(id)); if (r) r.estado = est;
 }
 async function apiBorrar(id) {
-  const res = await fetch(SCRIPT_URL + '?action=delete&id=' + encodeURIComponent(id) + '&key=' + encodeURIComponent(KEY), { redirect: 'follow' });
+  const res = await fetch(SCRIPT_URL + '?action=delete&id=' + encodeURIComponent(id) + '&key=' + encodeURIComponent(KEY), { redirect: 'follow', cache: 'no-store' });
   const json = await res.json(); if (json.ok === false) throw new Error(json.error || 'No se pudo borrar');
   registros = registros.filter(x => String(x.id) !== String(id));
 }
@@ -670,7 +671,7 @@ async function syncServer() {
   catch (e) { return false; }
   for (const w of [1500, 2500, 4000]) {
     await new Promise(r => setTimeout(r, w));
-    try { const j = await (await fetch(SCRIPT_URL + '?action=getconfig&key=' + encodeURIComponent(KEY), { redirect: 'follow' })).json(); if (j.ok && j.data && j.data.savedAt === at) return true; } catch (e) {}
+    try { const j = await (await fetch(SCRIPT_URL + '?action=getconfig&key=' + encodeURIComponent(KEY), { redirect: 'follow', cache: 'no-store' })).json(); if (j.ok && j.data && j.data.savedAt === at) return true; } catch (e) {}
   }
   return false;
 }
@@ -680,7 +681,7 @@ function publicar(msg) {
 }
 async function pullConfig() {
   try {
-    const j = await (await fetch(SCRIPT_URL + '?action=getconfig&key=' + encodeURIComponent(KEY), { redirect: 'follow' })).json();
+    const j = await (await fetch(SCRIPT_URL + '?action=getconfig&key=' + encodeURIComponent(KEY), { redirect: 'follow', cache: 'no-store' })).json();
     if (!j.ok || !j.data) return;
     const adm = conf.mail.admin; conf = mix(DEF, j.data); if (!conf.mail.admin) conf.mail.admin = adm;
     confSaved = JSON.parse(JSON.stringify(conf)); try { localStorage.setItem('rifa_cfg', JSON.stringify(conf)); } catch (e) {}

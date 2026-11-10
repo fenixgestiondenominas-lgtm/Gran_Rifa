@@ -371,7 +371,7 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 // ── GOOGLE SHEETS — pega tu URL aquí ──
 var GSHEET_URL='https://script.google.com/macros/s/AKfycbxfiqIAcyLwP5ipCQxYKcl6VFy6ze6Q6Bs3Nwc0qyOUr5-QXVP62DRxjG9CtCEApvtl/exec'; // MISMO backend que admin.html (SCRIPT_URL). Si cambias uno, cambia el otro.
 // ────────────────────────────────────────
-var sels=[], maxS=1, regData={}, compImg=null, dcnt=0, rcnt=0, vcnt=0;
+var MONEDA='COP', PMOD={1:20000,2:40000,3:60000}, sels=[], maxS=1, regData={}, compImg=null, dcnt=0, rcnt=0, vcnt=0;
 var _metodo='nubank'; // único método de pago activo
 
 function copiarLlaveNu(){
@@ -402,7 +402,7 @@ async function enviarASheets(datos){
     p+='&total='+encodeURIComponent(datos.total||0);
     p+='&metodo='+encodeURIComponent(datos.metodo||'nubank');
     p+='&fecha='+encodeURIComponent(datos.fecha||new Date().toLocaleString('es-CO'));
-    var res=await fetch(GSHEET_URL+'?'+p,{redirect:'follow'});
+    var res=await fetch(GSHEET_URL+'?'+p,{redirect:'follow',cache:'no-store'});
     var json=await res.json();
     if(!json.ok){ console.error('[Sheets] Error al guardar:', json.error); return {ok:false}; }
     console.log('[Sheets] Registro guardado OK, id real del servidor=',json.id);
@@ -438,7 +438,7 @@ async function actualizarEnSheets(datos){
   for(var attempt=0;attempt<esperas.length;attempt++){
     await new Promise(function(r){ setTimeout(r,esperas[attempt]); });
     try{
-      var res=await fetch(GSHEET_URL+'?action=list');
+      var res=await fetch(GSHEET_URL+'?action=list',{cache:'no-store'});
       var json=await res.json();
       if(!json.ok || !Array.isArray(json.data)){ console.error('[Sheets] No se pudo verificar la lista:', json.error); continue; }
       var row=json.data.find(function(r){ return String(r.id)===String(datos.id); });
@@ -488,7 +488,7 @@ for(var i=0;i<=333;i++){
 async function cargarEstado(){
   var ocupados={}; // {numero: 'vend'|'res'}
   try{
-    var res=await fetch(GSHEET_URL+'?action=list',{redirect:'follow'});
+    var res=await fetch(GSHEET_URL+'?action=list',{redirect:'follow',cache:'no-store'});
     var data=await res.json();
     if(data && data.ok && Array.isArray(data.data)){
       for(var i=0;i<data.data.length;i++){
@@ -550,10 +550,11 @@ setInterval(cargarEstado, 20000);
 // ── CONFIG PUBLICADA DESDE EL ADMIN ── (admin.html → Configuración → "publicar en el sitio")
 async function cargarConfigAdmin(){
   try{
-    var r=await fetch(GSHEET_URL+'?action=getconfig',{redirect:'follow'});
+    var r=await fetch(GSHEET_URL+'?action=getconfig',{redirect:'follow',cache:'no-store'});
     var j=await r.json();
     if(!j||!j.ok||!j.data) return;
     var c=j.data, ms=(c.pago&&c.pago.metodos)||[];
+    try{ aplicarConfig(c); }catch(e){ console.warn('[Config] no se pudo aplicar', e); }
     var nu=ms.filter(function(m){return m.tipo==='nu';})[0];
     if(nu){
       if(nu.dato){var el=document.getElementById('nullave');if(el)el.textContent=nu.dato;}
@@ -561,10 +562,37 @@ async function cargarConfigAdmin(){
     }
   }catch(e){ console.warn('[Config] no disponible, se usan valores del sitio'); }
 }
+function aplicarConfig(c){
+  var s=c.sitio||{}, mods=(c.nums&&c.nums.mods)||{}, ks=[], k, q=function(x){return document.querySelector(x);};
+  if(s.moneda) MONEDA=s.moneda;
+  for(k=1;k<=5;k++){ var m=mods['x'+k]; if(m&&Number(m.precio)>0) PMOD[k]=Number(m.precio); if(m&&m.on) ks.push(k); }
+  var tx=function(sel,v){ var el=q(sel); if(el&&v) el.textContent=v; };
+  tx('.hb',s.etiqueta); tx('.hi h1',s.nombre); tx('.hs',s.subtitulo); tx('#premios .sh',s.premiosTitulo); tx('#premios .ss',s.premiosSub);
+  var pr=(s.premios||[]).filter(function(p){ return p.valor && (!ks.length || !p.mod || ks.indexOf(+String(p.mod).slice(1))>-1); });
+  var ct=q('#premios .ct');
+  if(ct&&pr.length){
+    var old=ct.querySelectorAll('.pu'); for(var a=0;a<old.length;a++) old[a].parentNode.removeChild(old[a]);
+    pr.forEach(function(p){ var d=document.createElement('div'); d.className='pu'; d.innerHTML='<span class="pi">💵</span><p class="pn"></p><p class="pm"></p>'; d.querySelector('.pn').textContent=p.puesto||'Premio'; d.querySelector('.pm').textContent=p.valor; ct.appendChild(d); });
+  }
+  var hs=document.querySelectorAll('.hsi');
+  if(hs.length>=3){
+    hs[1].querySelector('.big').textContent='$'+PMOD[1].toLocaleString('es-CO'); hs[1].querySelector('.sm').textContent=MONEDA+' por número';
+    if(pr.length){ hs[2].querySelector('.big').textContent=pr[0].valor; hs[2].querySelector('.sm').textContent='Gran Premio'; }
+  }
+  var xw=q('.xw');
+  if(xw&&ks.length){
+    var bs=xw.querySelectorAll('.xb'); for(var b=0;b<bs.length;b++) xw.removeChild(bs[b]);
+    ks.forEach(function(n,ix){ var bt=document.createElement('button'); bt.className='xb'+(ix?'':' on'); bt.textContent='x'+n+' — '+formatCOP(PMOD[n]); bt.onclick=function(){ setMax(n,bt); }; xw.appendChild(bt); });
+    setMax(ks[0], xw.querySelector('.xb'));
+  } else { updBar(); }
+  var pm=document.getElementById('pmto'); if(pm) pm.textContent=formatCOP(PMOD[1]);
+}
 cargarConfigAdmin();
  // refresca cada 20s para ver reservas/ventas de otros usuarios
 
-function formatCOP(n){return '$'+Number(n).toLocaleString('es-CO')+' COP';}
+function formatCOP(n){return '$'+Number(n).toLocaleString('es-CO')+' '+MONEDA;}
+// precio del combo exacto (x2, x3…) si coincide con lo elegido; si no, suma de boletos individuales
+function calcTotal(k){ if(!k) return 0; return (k===maxS && PMOD[k]) ? PMOD[k] : k*PMOD[1]; }
 
 function setMax(n,btn){
   maxS=n;
@@ -589,7 +617,7 @@ function updBar(){
   bar.classList.add('on');
   var h='';for(var i=0;i<sels.length;i++)h+='<span class="sch">'+String(sels[i]).padStart(3,'0')+'</span>';
   document.getElementById('schips').innerHTML=h;
-  document.getElementById('stot').textContent=formatCOP(sels.length*20000);
+  document.getElementById('stot').textContent=formatCOP(calcTotal(sels.length));
   var t='';for(var i=0;i<sels.length;i++)t+=(i?', ':'')+String(sels[i]).padStart(3,'0');
   document.getElementById('numsel').textContent=t;
 }
@@ -618,7 +646,7 @@ async function registrar(){
   if(!inv){alert('Cuéntanos quién te invitó o cómo conociste la rifa');return;}
   if(!sels.length){alert('Elige al menos un número');return;}
   var nums=[];for(var i=0;i<sels.length;i++)nums.push(String(sels[i]).padStart(3,'0'));
-  var tot=sels.length*20000;
+  var tot=calcTotal(sels.length);
   regData={nombre:n,pais:p,correo:c,invito:inv,nums:nums,total:tot,numIds:sels.slice()};
   // Guardar vendidos en nube
   var vl=await dbGet('rifa_dic_vend')||[];
