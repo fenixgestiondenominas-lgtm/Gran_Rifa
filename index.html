@@ -377,14 +377,15 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 // ── GOOGLE SHEETS — pega tu URL aquí ──
 var GSHEET_URL='https://script.google.com/macros/s/AKfycbxDe8pjizbvsc7_V1GoR7fFTVPb8Dtj77ey5ZAEW_KmEgpQIHt0XCX1THyVSuqtxEu2/exec'; // MISMO backend que admin.html (SCRIPT_URL). Si cambias uno, cambia el otro.
 // ────────────────────────────────────────
-var MONEDA='USD', regData={}, compImg=null, selId=null, modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10;
+var MONEDA='COP', regData={}, compImg=null, selId=null, modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10;
 // Modalidades (mismos valores por defecto que admin.html; el admin las publica y aplicarConfig() las sobrescribe)
 //  x1 = 1 número por boleto · xN (N>=2) = TALONARIO: cada boleto trae N números repartidos en el rango
-//  cifras 2 -> 00–99 (100) · cifras 3 -> 000–999 (1.000)
-var MODS={x1:{on:true,cifras:2,precio:25},x2:{on:false,cifras:3,precio:40},x3:{on:true,cifras:3,precio:50},x4:{on:false,cifras:3,precio:60},x5:{on:false,cifras:3,precio:75}};
+//  cifras 1 -> 0–9 · cifras 2 -> 00–99 · cifras 3 -> 000–999
+var MODS={x1:{on:true,cifras:2,precio:25000},x2:{on:false,cifras:3,precio:40000},x3:{on:true,cifras:3,precio:50000},x4:{on:false,cifras:3,precio:60000},x5:{on:false,cifras:3,precio:75000}};
+function fmt(n){return String(Math.round(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g,'.');}   // 25000 -> 25.000
 function pad(n,c){return String(n).padStart(c,'0');}
 function nDe(k){return +k.slice(1);}
-function rangoN(k){return MODS[k].cifras===2?100:1000;}
+function rangoN(k){return Math.pow(10,MODS[k].cifras);}
 // cantidad de boletos: x1 = todo el rango; xN = floor((rango-1)/N)  (x3 con 3 cifras -> 333 talonarios)
 function nBol(k){var n=nDe(k),R=rangoN(k);return n<=1?R:Math.floor((R-1)/n);}
 // números que trae el boleto i:  i, i+B, i+2B ...  (ej. x3: 001 -> 001, 334, 667)
@@ -520,10 +521,10 @@ function pintarTitulo(){
 function pintarHero(){
   var hs=document.querySelectorAll('.hsi'); if(hs.length<2) return;
   var k=modsOn()[0], n=nDe(k), C=MODS[k].cifras;
-  hs[0].querySelector('.big').textContent=nBol(k).toLocaleString('es-CO');
+  hs[0].querySelector('.big').textContent=fmt(nBol(k));
   hs[0].querySelector('.sm').textContent=(n>1?'Talonarios x'+n:'Números')+' ('+pad(0,C)+'–'+pad(rangoN(k)-1,C)+')';
-  hs[1].querySelector('.big').textContent=(MONEDA==='EUR'?'€':'$')+MODS[k].precio.toLocaleString('es-CO');
-  hs[1].querySelector('.sm').textContent=MONEDA+(n>1?' por talonario':' por número');
+  hs[1].querySelector('.big').textContent='$'+fmt(MODS[k].precio);
+  hs[1].querySelector('.sm').textContent='COP'+(n>1?' por talonario':' por número');
 }
 function construirModos(){
   var xw=document.querySelector('.xw'), old=xw.querySelectorAll('.xb'), i;
@@ -616,10 +617,9 @@ async function cargarConfigAdmin(){
 }
 function aplicarConfig(c){
   var s=c.sitio||{}, mods=(c.nums&&c.nums.mods)||{}, q=function(x){return document.querySelector(x);};
-  if(s.moneda) MONEDA=s.moneda;
   for(var n=1;n<=5;n++){
     var k='x'+n, m=mods[k]; if(!m) continue;
-    MODS[k].on=!!m.on; MODS[k].cifras=(Number(m.cifras)===2?2:3);
+    MODS[k].on=!!m.on; MODS[k].cifras=([1,2,3].indexOf(Number(m.cifras))>-1?Number(m.cifras):3);
     if(Number(m.precio)>0) MODS[k].precio=Number(m.precio);
   }
   if(c.nums && Number(c.nums.cols)>=3) CFGCOLS=Math.min(20,Math.round(Number(c.nums.cols)));
@@ -647,7 +647,7 @@ function aplicarConfig(c){
 cargarConfigAdmin();
  // refresca cada 20s para ver reservas/ventas de otros usuarios
 
-function formatCOP(n){return (MONEDA==='EUR'?'€':'$')+Number(n).toLocaleString('es-CO')+' '+MONEDA;}
+function formatCOP(n){return '$'+fmt(n)+' COP';}
 
 // Un registro = UN boleto de la modalidad elegida (x1: 1 número · xN: talonario de N números)
 function selBoleto(i){

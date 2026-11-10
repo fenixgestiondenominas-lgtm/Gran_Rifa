@@ -265,13 +265,15 @@ h1.t{font-size:26px;font-weight:800;letter-spacing:-.5px}
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDe8pjizbvsc7_V1GoR7fFTVPb8Dtj77ey5ZAEW_KmEgpQIHt0XCX1THyVSuqtxEu2/exec';
 let KEY = '';
-const PRECIO = new Proxy({}, { get: (_, k) => { try { const m = conf.nums.mods[k]; if (m && Number(m.precio) > 0) return Number(m.precio); } catch (e) {} return { x1: 25, x3: 50 }[k] || 0; } });
+const fmt = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');   // 25000 -> 25.000
+const PRECIO = new Proxy({}, { get: (_, k) => { try { const m = conf.nums.mods[k]; if (m && Number(m.precio) > 0) return Number(m.precio); } catch (e) {} return { x1: 25000, x3: 50000 }[k] || 0; } });
 const modsActivas = () => { try { return Object.entries(conf.nums.mods).filter(([, m]) => m.on).map(([k]) => k); } catch (e) { return ['x1', 'x3']; } };
-const rangoDe = k => conf.nums.mods[k].cifras === 2 ? '00–99' : '000–999';
+const cif = k => [1, 2, 3].includes(+conf.nums.mods[k].cifras) ? +conf.nums.mods[k].cifras : 3;   // 1 = 0–9 · 2 = 00–99 · 3 = 000–999
+const rangoDe = k => '0'.repeat(cif(k)) + '–' + '9'.repeat(cif(k));
 // x1 = 1 número por boleto (todo el rango). xN = TALONARIO de N números: floor((rango-1)/N) boletos (x3 con 3 cifras = 333). Igual que index.html
-const nBol = k => { const n = +k.slice(1), R = conf.nums.mods[k].cifras === 2 ? 100 : 1000; return n <= 1 ? R : Math.floor((R - 1) / n); };
+const nBol = k => { const n = +k.slice(1), R = Math.pow(10, cif(k)); return n <= 1 ? R : Math.floor((R - 1) / n); };
 const metaDe = k => nBol(k) * (Number(conf.nums.mods[k].precio) || 0);
-const subMod = k => { const n = +k.slice(1); return n === 1 ? `1 número por boleto · ${usd(PRECIO[k])} · ${nBol(k)} boletos · Rango ${rangoDe(k)}` : `Talonario de ${n} números · ${usd(PRECIO[k])} · ${nBol(k).toLocaleString('es-CO')} talonarios · Rango ${rangoDe(k)}`; };
+const subMod = k => { const n = +k.slice(1); return n === 1 ? `1 número por boleto · ${usd(PRECIO[k])} · ${nBol(k)} boletos · Rango ${rangoDe(k)}` : `Talonario de ${n} números · ${usd(PRECIO[k])} · ${fmt(nBol(k))} talonarios · Rango ${rangoDe(k)}`; };
 </script>
 
 <div id="login">
@@ -369,9 +371,9 @@ let registros = [], q = '', active = 'dash';
 
 // ── utilidades ──
 const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const mon = () => { try { return conf.sitio.moneda || 'USD'; } catch (e) { return 'USD'; } };
-const sym = () => mon() === 'EUR' ? '€' : '$';
-const usd = n => sym() + Number(n || 0).toLocaleString('es-CO') + ' ' + mon();
+const mon = () => 'COP';
+const sym = () => '$';
+const usd = n => sym() + fmt(n) + ' ' + mon();
 const totR = r => Number(r.total) > 0 ? Number(r.total) : PRECIO[parte(r)];
 const nums = r => Array.isArray(r.nums) ? r.nums.map(String) : String(r.nums == null ? '' : r.nums).split(',').map(t => t.trim()).filter(Boolean);
 const parte = r => 'x' + Math.max(1, nums(r).length);
@@ -510,7 +512,7 @@ function render() {
   const metaT = act.reduce((a, k) => a + metaDe(k), 0) || 1;
   $('fin').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:600;color:#9BE3C6">Total cobrado</span><span class="pill" style="background:#12392F;color:#34D399">Pagos confirmados</span></div>
     <div><div class="big">${usd(paid)}</div><div class="mp">${(paid / metaT * 100 < 10 && paid ? (paid / metaT * 100).toFixed(1) : Math.round(paid / metaT * 100))}% de la meta total · ${usd(metaT)}</div></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px 32px">${act.map(k => mp('Boletos ' + k + ' · meta ' + nBol(k).toLocaleString('es-CO') + ' × ' + usd(PRECIO[k]), pk(k), metaDe(k) || 1)).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px 32px">${act.map(k => mp('Boletos ' + k + ' · meta ' + fmt(nBol(k)) + ' × ' + usd(PRECIO[k]), pk(k), metaDe(k) || 1)).join('')}</div>
     <div style="font-size:12px;color:#8FB8A8">Por aprobar: <b style="color:#F5B73D">${usd(sum(r => estado(r) === 'Pendiente'))}</b></div>`;
 
   const card = (k, tit, paidK, m) => {
@@ -609,16 +611,16 @@ function drawDias() {
 
 // ── configuración ──
 const DEF = {
-  sitio: { nombre: 'Gran Rifa de Premios', etiqueta: '🔥 CUPOS LIMITADOS', subtitulo: '¡Elige tu número de la suerte y gana hasta $1.000 USD!', moneda: 'USD', color: '#1D4ED8', texto: '#FFFFFF', whatsapp: '', idioma: { auto: true, def: 'es', sel: true },
+  sitio: { nombre: 'Gran Rifa de Premios', etiqueta: '🔥 CUPOS LIMITADOS', subtitulo: '¡Elige tu número de la suerte y gana hasta $1.000.000 COP!', moneda: 'COP', color: '#1D4ED8', texto: '#FFFFFF', whatsapp: '', idioma: { auto: true, def: 'es', sel: true },
     premiosTitulo: '¿Qué puedes ganar?', premiosSub: 'Premios principales para los ganadores',
-    premios: [{ puesto: '1.º Lugar (Gran Premio)', valor: '$500 USD', mod: 'x1' }, { puesto: '1.º Lugar (Gran Premio)', valor: '$1.000 USD', mod: 'x3' }] },
+    premios: [{ puesto: '1.º Lugar (Gran Premio)', valor: '$500.000 COP', mod: 'x1' }, { puesto: '1.º Lugar (Gran Premio)', valor: '$1.000.000 COP', mod: 'x3' }] },
   pago: { metodos: [] },
   nums: { mods: {
-    x1: { on: true, cifras: 2, precio: 25, nombre: 'Boleto individual' },
-    x2: { on: false, cifras: 3, precio: 40, nombre: 'Combo de 2 números' },
-    x3: { on: true, cifras: 3, precio: 50, nombre: 'Combo de 3 números' },
-    x4: { on: false, cifras: 3, precio: 60, nombre: 'Combo de 4 números' },
-    x5: { on: false, cifras: 3, precio: 75, nombre: 'Combo de 5 números' } },
+    x1: { on: true, cifras: 2, precio: 25000, nombre: 'Boleto individual' },
+    x2: { on: false, cifras: 3, precio: 40000, nombre: 'Combo de 2 números' },
+    x3: { on: true, cifras: 3, precio: 50000, nombre: 'Combo de 3 números' },
+    x4: { on: false, cifras: 3, precio: 60000, nombre: 'Combo de 4 números' },
+    x5: { on: false, cifras: 3, precio: 75000, nombre: 'Combo de 5 números' } },
     cols: 10, cDisp: '#34D399', cRes: '#F5B73D', cVen: '#F0657A', reserva: 24 },
   mail: { admin: '', alertas: true, cliente: { on: true, asunto: '¡Tu número [NUMERO] ha sido confirmado!', msg: 'Hola [NOMBRE], tu pago ha sido verificado con éxito. ¡Mucha suerte!' } }
 };
@@ -658,6 +660,7 @@ function confBar() {
 }
 function setTab(k) { ctab = k; if (k !== 'pago') pdraft = null; drawCfg(); }
 function cfgIn(p, v) { sp(p, v); confBar(); prevUpd(); }
+function precioIn(p, el) { const d = el.value.replace(/\D/g, ''); el.value = d ? fmt(d) : ''; cfgIn(p, d ? Number(d) : 0); }
 function cfgSet(p, v) { sp(p, v); drawCfg(); }
 function subirQR(inp) {
   const f = inp.files && inp.files[0]; if (!f) return;
@@ -785,12 +788,12 @@ function togMod(k) {
   m.on = !m.on; drawNav(); drawCfg();
 }
 function modRow(k) {
-  const m = conf.nums.mods[k], P = 'nums.mods.' + k, N = +k.slice(1), rg = (m.cifras === 2 ? '00–99' : '000–999') + ' · ' + (N === 1 ? nBol(k) + ' números' : nBol(k).toLocaleString('es-CO') + ' talonarios de ' + N + ' números');
+  const m = conf.nums.mods[k], P = 'nums.mods.' + k, N = +k.slice(1), rg = rangoDe(k) + ' · ' + (N === 1 ? nBol(k) + ' números' : fmt(nBol(k)) + ' talonarios de ' + N + ' números');
   return `<div class="mrow ${m.on ? 'on' : ''}"><div class="mh"><button class="sw ${m.on ? 'on' : ''}" role="switch" aria-checked="${m.on}" aria-label="Modalidad ${k}" onclick="togMod('${k}')"></button>
     <div style="flex:1;min-width:150px"><b>Modalidad ${k}</b><span class="hint">${m.on ? `${rg} · ${usd(Number(m.precio) || 0)}` : 'Inactiva'}</span></div>${m.on ? '' : `<button class="bgh" onclick="togMod('${k}')">Activar</button>`}</div>
     ${m.on ? `<div class="mbody">${fl('Nombre o descripción', P + '.nombre', 'Ej. Combo de 3 números')}
-      <div class="fld"><label>Rango de números</label>${seg(P + '.cifras', [[2, '2 cifras<small>00–99</small>'], [3, '3 cifras<small>000–999</small>']])}</div>
-      <div class="fld"><label for="f-${P}.precio">Precio</label><div class="money">${sym()}<input id="f-${P}.precio" type="number" min="0" step="any" value="${esc(m.precio)}" placeholder="25" oninput="cfgIn('${P}.precio',this.value)">${mon()}</div></div></div>` : ''}</div>`;
+      <div class="fld"><label>Rango de números</label>${seg(P + '.cifras', [[1, '1 cifra<small>0–9</small>'], [2, '2 cifras<small>00–99</small>'], [3, '3 cifras<small>000–999</small>']])}</div>
+      <div class="fld"><label for="f-${P}.precio">Precio</label><div class="money">${sym()}<input id="f-${P}.precio" type="text" inputmode="numeric" autocomplete="off" value="${fmt(m.precio)}" placeholder="25.000" oninput="precioIn('${P}.precio',this)">${mon()}</div></div></div>` : ''}</div>`;
 }
 const medal = r => ['🥇', '🥈', '🥉'][r] || '🏅';
 const prevHero = () => { const s = conf.sitio; return `<span class="cap">Vista previa</span><span class="pchip" style="background:${s.color};color:${s.texto}">${esc(s.etiqueta) || '…'}</span><div class="ph1">${esc(s.nombre) || '…'}</div><div class="ph2">${esc(s.subtitulo)}</div>`; };
@@ -806,7 +809,7 @@ function premAdd() {
 function premDel(i) { conf.sitio.premios.splice(i, 1); drawCfg(); }
 function premRow(p, i, r) {
   const P = 'sitio.premios.' + i, mods = Object.keys(conf.nums.mods).filter(k => conf.nums.mods[k].on || k === p.mod);
-  return `<div class="prow"><div class="pmed">${medal(r)}</div>${fl('Puesto', P + '.puesto', '1.º Lugar')}${fl('Valor del premio', P + '.valor', '$500 USD')}
+  return `<div class="prow"><div class="pmed">${medal(r)}</div>${fl('Puesto', P + '.puesto', '1.º Lugar')}${fl('Valor del premio', P + '.valor', '$500.000 COP')}
     <div class="fld"><label for="pm${i}">Modalidad</label><select id="pm${i}" onchange="cfgSet('${P}.mod',this.value)">${mods.map(k => `<option value="${k}" ${k === p.mod ? 'selected' : ''}>Boletos ${k}</option>`).join('')}</select></div>
     <button class="ic del" onclick="premDel(${i})" aria-label="Eliminar premio" title="Eliminar">${ic('trash', 16)}</button></div>`;
 }
@@ -815,8 +818,8 @@ function drawCfg() {
   const B = {
     web: `<section class="cc" style="grid-column:1/-1">${hd('globe', 'Textos de la Portada (Hero)', 'Lo primero que ve el cliente al entrar al sitio.')}
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">${fl('Título principal', 'sitio.nombre', 'Gran Rifa de Premios')}${fl('Texto de la etiqueta superior', 'sitio.etiqueta', '🔥 CUPOS LIMITADOS')}
-          ${fl('Subtítulo / Frase de impacto', 'sitio.subtitulo', '¡Elige tu número y gana hasta $1.000 USD!')}
-          <div class="fld"><label for="f-mon">Moneda de la rifa</label><select id="f-mon" onchange="cfgSet('sitio.moneda',this.value)">${[['USD', 'USD ($)'], ['COP', 'COP ($)'], ['EUR', 'EUR (€)'], ['MXN', 'MXN ($)']].map(([v, l]) => `<option value="${v}" ${conf.sitio.moneda === v ? 'selected' : ''}>${l}</option>`).join('')}</select><small>Cambia las etiquetas de precios en todo el panel.</small></div></div>
+          ${fl('Subtítulo / Frase de impacto', 'sitio.subtitulo', '¡Elige tu número y gana hasta $1.000.000 COP!')}
+          <div class="fld"><label for="f-mon">Moneda de la rifa</label><input id="f-mon" type="text" value="COP — Peso colombiano" readonly><small>Los precios se muestran con punto de miles, ej. $25.000 COP.</small></div></div>
         <div class="prev" id="prev-h">${prevHero()}</div></section>` +
       `<section class="cc" style="grid-column:1/-1">${hd('layers', 'Configuración de Premios (¿Qué puedes ganar?)', 'Agrega los ganadores que quieras y asócialos a una modalidad de boleto.')}
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">${fl('Título de la sección pública', 'sitio.premiosTitulo', '¿Qué puedes ganar?')}${fl('Subtítulo de la sección', 'sitio.premiosSub', 'Premios principales para los ganadores')}</div>
