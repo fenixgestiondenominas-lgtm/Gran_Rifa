@@ -384,6 +384,9 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
       </div>
     </div>
 
+    <!-- MÉTODOS DE PAGO CONFIGURADOS EN EL ADMIN (se dibujan por JS) -->
+    <div id="metDin" style="display:none"></div>
+
     <div style="text-align:center;margin-top:2rem">
       <button onclick="abrirComp()" style="background:var(--btn,var(--r));color:var(--btnt,#fff);font-family:var(--disp);font-size:1.3rem;border:none;border-radius:50px;padding:1rem 3rem;cursor:pointer;box-shadow:0 6px 20px rgba(255,71,87,.3);transition:transform .2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">Ya pagué — Siguiente →</button>
       <p style="font-size:.8rem;color:var(--gr);font-weight:600;margin-top:.6rem">Toca cuando hayas realizado el pago</p>
@@ -448,6 +451,66 @@ function modsOn(){var a=[];for(var n=1;n<=5;n++)if(MODS['x'+n].on)a.push('x'+n);
 function etiquetaMod(k){var n=nDe(k);return n>1?'Talonario x'+n:'Número individual';}
 modo=modsOn()[0];
 var _metLabel='Nu / Bre-B'; var _metodo='nubank'; // único método de pago activo
+
+// ── MÉTODOS DE PAGO DINÁMICOS (vienen del panel admin → Métodos de pago) ──
+var METODOS=[], metSel=0;
+var PLN={nequi:'Nequi',nu:'Nu · Bre-B',breb:'Bre-B',binance:'Binance Pay',bancolombia:'Bancolombia',daviplata:'Daviplata',usdt:'Billetera USDT'};
+var PLC={nequi:'#C026D3',nu:'#820AD1',breb:'#0EA5E9',binance:'#C99A00',bancolombia:'#B8860B',daviplata:'#E11D48',usdt:'#26A17B'};
+var PLP={
+  nequi:['Abre tu app Nequi','Inicia sesión en tu cuenta','Envía plata al celular','Escanea el QR o ingresa el número'],
+  nu:['Abre tu app Nu','Inicia sesión en tu cuenta Nubank','Toca Transferir → Bre-B','Escanea el QR o ingresa la llave'],
+  breb:['Abre la app de tu banco','Inicia sesión en tu cuenta','Toca Transferir → Bre-B','Escanea el QR o ingresa la llave'],
+  daviplata:['Abre tu app Daviplata','Inicia sesión en tu cuenta','Toca Enviar plata','Escanea el QR o ingresa el número'],
+  bancolombia:['Abre la app Bancolombia','Inicia sesión en tu cuenta','Transfiere a la cuenta indicada','Ingresa el número de cuenta'],
+  binance:['Abre tu app Binance','Inicia sesión en tu cuenta','Toca Pay → Enviar','Escanea el QR o ingresa el Pay ID'],
+  usdt:['Abre tu billetera','Inicia sesión o desbloquéala','Envía USDT a la dirección','Escanea el QR o copia la dirección']
+};
+function fijarMetodo(){
+  var m=METODOS[metSel]; if(!m) return;
+  _metodo=(m.tipo==='nu')?'nubank':m.tipo;
+  _metLabel=(m.tipo==='nu')?'Nu / Bre-B':PLN[m.tipo];
+}
+function selMetodo(i){ metSel=i; fijarMetodo(); renderPagoDin(); }
+function renderPagoDin(){
+  var box=document.getElementById('metDin'); if(!box||!METODOS.length) return;
+  var m=METODOS[metSel]||METODOS[0], c=PLC[m.tipo]||'#820AD1', st=PLP[m.tipo]||PLP.breb;
+  var llave=m.dato||m.titular||'', monto=formatCOP((regData&&regData.total)||MODS[modo].precio);
+  var tabs='';
+  if(METODOS.length>1){
+    tabs='<div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem">';
+    for(var i=0;i<METODOS.length;i++){
+      var t=METODOS[i], on=(i===metSel), cc=PLC[t.tipo]||'#820AD1';
+      tabs+='<button onclick="selMetodo('+i+')" style="cursor:pointer;font-weight:800;font-size:.95rem;padding:.6rem 1.1rem;border-radius:50px;border:2px solid '+cc+';background:'+(on?cc:'#fff')+';color:'+(on?'#fff':cc)+'">'+escH(PLN[t.tipo])+'</button>';
+    }
+    tabs+='</div>';
+  }
+  var qr=m.qr?'<div class="qf"><img src="'+m.qr+'" alt="QR '+escH(PLN[m.tipo])+'" style="display:block;width:100%;height:100%;object-fit:contain;border-radius:10px"></div>':'';
+  var pasos='';
+  var tit=[st[0],st[2]], sub=[st[1],st[3]];
+  pasos+='<div class="pas"><div class="pan">1</div><div><strong>'+escH(st[0])+'</strong><p>'+escH(st[1])+'</p></div></div>';
+  pasos+='<div class="pas"><div class="pan">2</div><div><strong>'+escH(st[2])+'</strong><p>'+escH(st[3])+'</p></div></div>';
+  pasos+='<div class="pas"><div class="pan">3</div><div><strong>Envía el monto exacto</strong><p>Paga <strong>'+escH(monto)+'</strong></p></div></div>';
+  pasos+='<div class="pas"><div class="pan">4</div><div><strong>Toca "Enviar"</strong><p>Sube el comprobante para confirmar</p></div></div>';
+  pasos+='<div class="nota">Realiza la transferencia y toca el botón Siguiente 👇</div>';
+  box.innerHTML=tabs+
+    '<div class="pg2"><div class="pl">'+pasos+'</div>'+
+    '<div class="qc" style="border-color:'+c+'">'+
+      '<p style="font-size:.75rem;font-weight:800;color:var(--gr);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem">Escanea o copia 👇</p>'+qr+
+      '<div style="background:#f6f6f6;border:2px solid '+c+';border-radius:12px;padding:1rem;margin-bottom:.75rem;word-break:break-all">'+
+        '<p style="font-size:1rem;font-weight:800;color:#222;font-family:monospace;line-height:1.7;text-align:center;margin:0">'+escH(llave)+'</p></div>'+
+      '<button onclick="copiarLlaveDin()" style="width:100%;background:'+c+';color:#fff;font-family:var(--disp);font-size:.95rem;border:none;border-radius:10px;padding:.65rem;cursor:pointer;margin-bottom:.5rem">📋 Copiar</button>'+
+      '<p id="llaveDinOk" style="display:none;font-size:.8rem;color:#2E7D32;font-weight:800;text-align:center">✅ ¡Copiado!</p>'+
+      '<p style="font-family:var(--disp);font-size:1rem;margin:.5rem 0;color:'+c+'">'+escH(PLN[m.tipo])+'</p>'+
+      (m.titular&&m.dato?'<p style="font-size:.78rem;color:var(--gr);font-weight:700">A nombre de: '+escH(m.titular)+'</p>':'')+
+    '</div></div>';
+}
+function copiarLlaveDin(){
+  var m=METODOS[metSel]; if(!m) return; var llave=m.dato||m.titular||'';
+  function ok(){ var o=document.getElementById('llaveDinOk'); if(o){o.style.display='block'; setTimeout(function(){o.style.display='none';},2500);} }
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(llave).then(ok).catch(function(){ cp2(llave); ok(); }); }
+  else{ cp2(llave); ok(); }
+  function cp2(t){ var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); }
+}
 
 function copiarLlaveNu(){
   var llave=document.getElementById('nullave').textContent;
@@ -662,12 +725,12 @@ async function cargarConfigAdmin(){
     var c=j.data, ms=(c.pago&&c.pago.metodos)||[];
     try{ aplicarConfig(c); }catch(e){ console.warn('[Config] no se pudo aplicar', e); }
     try{ localStorage.setItem('rifaCfgV1',JSON.stringify({sitio:c.sitio,nums:c.nums})); }catch(e){}   // copia ligera (sin QR) para el próximo arranque
-    var nu=ms.filter(function(m){return m.tipo==='nu'||m.tipo==='breb';})[0];
-    if(nu){
-      var esB=(nu.tipo==='breb'); _metLabel=esB?'Bre-B':'Nu / Bre-B'; _metodo=esB?'breb':'nubank';
-      var ml=document.getElementById('metlbl'); if(ml) ml.textContent=esB?'Bre-B':'Nu · Bre-B';
-      if(nu.dato){var el=document.getElementById('nullave');if(el)el.textContent=nu.dato;}
-      if(nu.qr){var im=document.getElementById('qimg'),sv=document.getElementById('qsvg');if(im){im.src=nu.qr;im.style.display='block';}if(sv)sv.style.display='none';}
+    METODOS=ms.filter(function(m){return m&&PLN[m.tipo]&&(m.dato||m.titular||m.qr);});
+    if(METODOS.length){
+      metSel=0; fijarMetodo();
+      document.getElementById('metNubank').style.display='none';
+      document.getElementById('metDin').style.display='block';
+      renderPagoDin();
     }
   }catch(e){ console.warn('[Config] no disponible, se usan valores del sitio'); }
   finally{ document.documentElement.className=document.documentElement.className.replace(/\bcl\b/,''); }
@@ -814,6 +877,7 @@ function abrirPago(){
   document.getElementById('rnum').textContent=regData.nums.join(', ');
   document.getElementById('rtot').textContent=formatCOP(regData.total);
   document.getElementById('pmto').textContent=formatCOP(regData.total);
+  try{ renderPagoDin(); }catch(e){}
   document.getElementById('pgPago').classList.add('on');
   window.scrollTo(0,0);
 }
@@ -823,7 +887,7 @@ function abrirComp(){
   document.getElementById('pgPago').classList.remove('on');
   document.getElementById('pgComp').classList.add('on');
   var sub=document.getElementById('compSub');
-  if(sub) sub.textContent='Sube el comprobante de tu transferencia Nu (Bre-B)';
+  if(sub) sub.textContent='Sube el comprobante de tu pago por '+_metLabel;
   window.scrollTo(0,0);
 }
 function cerrarComp(){
