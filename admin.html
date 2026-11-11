@@ -104,17 +104,17 @@ h1.t{font-size:26px;font-weight:800;letter-spacing:-.5px}
 .tabs{display:flex;gap:6px;margin-bottom:16px;background:var(--bg);padding:4px;border-radius:12px}
 .tabs button{flex:1;height:38px;border:none;border-radius:9px;background:none;color:var(--soft);font-weight:700;font-size:13px}
 .tabs button.on{background:#1B2A44;color:#9CC0FF}
-.fac{background:#F4F0FF;color:#2A1B4D;border-radius:16px;overflow:hidden}
-.fh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;background:linear-gradient(135deg,#4B1FA3,#7B3FD6);color:#fff}
-.fh h3{font-size:24px;font-weight:800;letter-spacing:1px}.fh small{opacity:.8;font-size:12px}
+.fac{background:#FBF6EA;color:#1d1a16;border-radius:16px;overflow:hidden}
+.fh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;background:#0F3B2E;border-bottom:4px solid #D9A441;color:#FBF6EA}
+.fh h3{font-size:24px;font-weight:800;letter-spacing:1px}.fh small{opacity:.85;font-size:12px;color:#E9D9A8;font-weight:700}
 .fn{text-align:right;font-weight:800;font-size:13px;word-break:break-all}.fn small{display:block}
 .fb{padding:8px 20px 18px}
-.fr{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px dashed #D9CFF2;font-size:13px}
-.fr span{color:#6B5A94;font-weight:600}.fr b{text-align:right;word-break:break-word}
-.fr .nm{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}.fr .nm i{font-style:normal;background:#4B1FA3;color:#fff;border-radius:999px;padding:2px 10px;font-size:12px}
-.ft{display:flex;justify-content:space-between;align-items:center;background:#E9E0FF;border-radius:12px;padding:14px 16px;margin-top:14px;font-weight:800}
-.ft b{font-size:22px;color:#3B1688}
-.fg{text-align:center;font-size:12px;color:#6B5A94;margin-top:14px}
+.fr{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px dashed #D8CBB0;font-size:13px}
+.fr span{color:#6b6254;font-weight:600}.fr b{text-align:right;word-break:break-word}
+.fr .nm{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}.fr .nm i{font-style:normal;background:#B3202F;color:#FBF6EA;border-radius:999px;padding:2px 10px;font-size:12px}
+.ft{display:flex;justify-content:space-between;align-items:center;background:#E4EFE6;border:1px solid #BFD6C6;border-radius:12px;padding:14px 16px;margin-top:14px;font-weight:800}
+.ft b{font-size:22px;color:#0F3B2E}
+.fg{text-align:center;font-size:12px;color:#6b6254;margin-top:14px}
 
 /* metas + gráfico por día */
 .fin .r em{font-style:normal;color:#7FAE9C;font-weight:600}
@@ -914,12 +914,12 @@ function verDetalle(id) {
   const fr = (l, v) => `<div class="fr"><span>${l}</span><b>${v}</b></div>`;
   const chips = nums(r).map(n => `<i>${esc(n)}</i>`).join('') || '—';
   const fac = `<div class="fac">
-    <div class="fh"><div><h3>FACTURA</h3><small>Gran Rifa de Premios</small></div><div class="fn"><small>N°</small>${esc(r.id)}</div></div>
+    <div class="fh"><div><h3>FACTURA</h3><small>🎄 ${esc(conf.sitio.nombre || 'Gran Rifa')}</small></div><div class="fn"><small>N°</small>${esc(r.id)}</div></div>
     <div class="fb">${fr('Nombre', esc(r.nombre))}${fr('Celular', esc(r.pais || '—'))}${fr('Correo', esc(r.correo))}${fr('Invitó / cómo conoció', esc(r.invito || '—'))}
       ${fr('Rifa', pr === 'x1' ? 'x1 · 1 número' : 'Talonario ' + pr + ' · ' + pr.slice(1) + ' números')}${gpr ? fr('Gran premio', esc(gpr.valor)) : ''}
       ${fr('Números', `<span class="nm">${chips}</span>`)}${fr('Método', esc(metNom(r)))}${fr('Fecha', esc(fh.dia + (fh.hora !== '—' ? ' · ' + fh.hora : '')))}
       <div class="ft"><span>Total pagado</span><b>${usd(totR(r))}</b></div>
-      <p class="fg">¡Gracias por participar!</p></div></div>`;
+      <p class="fg">¡Gracias por participar! 🎄🎁</p></div></div>`;
   $('m-t').textContent = (r.nombre || '') + ' ';
   $('m-t').innerHTML = esc(r.nombre || '') + ` <span class="pill" style="background:${COL[e][0]};color:${COL[e][1]};vertical-align:middle;margin-left:6px">${e}</span>`;
   $('m-b').innerHTML = `<div class="tabs"><button id="tb-c" class="on" onclick="tabDet('c')">Comprobante de pago</button><button id="tb-f" onclick="tabDet('f')">Factura web</button></div>
