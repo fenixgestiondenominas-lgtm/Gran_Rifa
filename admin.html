@@ -263,7 +263,7 @@ h1.t{font-size:26px;font-weight:800;letter-spacing:-.5px}
 </head>
 <body>
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDe8pjizbvsc7_V1GoR7fFTVPb8Dtj77ey5ZAEW_KmEgpQIHt0XCX1THyVSuqtxEu2/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0HoBeo3AXdE4NZE9VOCwFVquxyHyxvy7sIjGl_7Zp-Fw0uPymb0FJSRFno7xygYAT/exec';
 let KEY = '';
 const fmt = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');   // 25000 -> 25.000
 const PRECIO = new Proxy({}, { get: (_, k) => { try { const m = conf.nums.mods[k]; if (m && Number(m.precio) > 0) return Number(m.precio); } catch (e) {} return { x1: 25000, x3: 50000 }[k] || 0; } });
@@ -476,6 +476,7 @@ async function setEstado(id, est, msg) {
 }
 async function probarCorreo() {
   const to = String(conf.mail.admin || '').trim();
+  if (!/^\S+@\S+\.\S+$/.test(to)) return toast('Escribe primero tu correo en este formulario', true);
   try {
     const res = await fetch(SCRIPT_URL + '?action=testmail&key=' + encodeURIComponent(KEY) + '&to=' + encodeURIComponent(to), { redirect: 'follow', cache: 'no-store' });
     let j; try { j = await res.json(); } catch (e) { throw new Error('El script aún no tiene la versión nueva (Codigo.gs)'); }
