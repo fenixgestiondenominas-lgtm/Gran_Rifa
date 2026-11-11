@@ -176,6 +176,29 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 .reveal.visible{opacity:1}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.hi{transform:none}}
 @media(max-width:520px){.hi{transform:none}.hst{flex-wrap:nowrap}.hsi{flex:1;padding:0 .5rem}.hsi .big{font-size:1.05rem}.hsi .sm{font-size:.7rem}}
+
+/* FACTURA (después de subir el comprobante) */
+.fac2w{max-width:430px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.fac2{background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 14px 40px rgba(15,59,46,.18)}
+.fac2h{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;padding:1.4rem 1.4rem 1.2rem;background:linear-gradient(135deg,var(--pine),#1f6b52);color:var(--paper)}
+.fac2h h2{font-family:var(--disp);font-weight:400;font-size:2rem;letter-spacing:1px;line-height:1}
+.fac2h small{display:block;font-size:.78rem;font-weight:700;opacity:.85;margin-top:.3rem}
+.fac2n{text-align:right;font-family:var(--disp);font-size:1.05rem;word-break:break-all}
+.fac2n small{margin:0 0 .15rem;font-family:'Figtree',sans-serif}
+.fac2b2{padding:1.1rem 1.4rem 1.3rem}
+.fac2st{display:inline-flex;align-items:center;gap:.4rem;background:#FFF4D6;border:1px solid #F3C84B;color:#7A5200;font-weight:800;font-size:.78rem;padding:.4rem .8rem;border-radius:999px;margin-bottom:.7rem}
+.fac2r{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.7rem 0;border-bottom:1px dashed var(--line);font-size:.92rem}
+.fac2r>span{color:var(--gr);font-weight:700;white-space:nowrap}
+.fac2r b{text-align:right;font-weight:800;word-break:break-word}
+.fac2nm{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:flex-end}
+.fac2nm i{font-style:normal;background:var(--pine);color:var(--paper);font-family:var(--disp);font-size:.85rem;padding:.2rem .7rem;border-radius:999px}
+.fac2t{display:flex;justify-content:space-between;align-items:center;background:#E4EFE6;border-radius:14px;padding:1rem 1.1rem;margin-top:1rem;font-weight:800}
+.fac2t b{font-family:var(--disp);font-weight:400;font-size:1.6rem;color:var(--pine)}
+.fac2c{display:flex;align-items:center;gap:.8rem;margin-top:1rem;font-size:.82rem;font-weight:700;color:var(--gr)}
+.fac2c img{width:62px;height:62px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.fac2g{text-align:center;font-size:.82rem;font-weight:600;color:var(--gr);margin-top:1.1rem;padding-top:1rem;border-top:1px dashed var(--line);line-height:1.6}
+.fac2bt{display:block;width:100%;margin-top:1rem;background:var(--r);color:var(--paper);font-family:var(--disp);font-size:1.2rem;border:none;border-radius:999px;padding:1rem;cursor:pointer}
+.fac2bt:hover{background:#8F1726}
 </style>
 </head>
 <body>
@@ -373,11 +396,20 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
   </div>
 </div>
 
+<!-- PÁGINA FACTURA -->
+<div class="pg" id="pgFac">
+  <div class="pgn"><span class="lo">🎟️ Mi Rifa</span></div>
+  <div class="fac2w">
+    <div class="fac2" id="facBody"></div>
+    <button class="fac2bt" onclick="resetTodo()">Finalizar</button>
+  </div>
+</div>
+
 <script>
 // ── GOOGLE SHEETS — pega tu URL aquí ──
 var GSHEET_URL='https://script.google.com/macros/s/AKfycbw0HoBeo3AXdE4NZE9VOCwFVquxyHyxvy7sIjGl_7Zp-Fw0uPymb0FJSRFno7xygYAT/exec'; // MISMO backend que admin.html (SCRIPT_URL). Si cambias uno, cambia el otro.
 // ────────────────────────────────────────
-var MONEDA='COP', regData={}, compImg=null, selId=null, modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10;
+var MONEDA='COP', regData={}, compImg=null, selId=null, modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10, PREMIOS=[];
 // Modalidades (mismos valores por defecto que admin.html; el admin las publica y aplicarConfig() las sobrescribe)
 //  x1 = 1 número por boleto · xN (N>=2) = TALONARIO: cada boleto trae N números repartidos en el rango
 //  cifras 1 -> 0–9 · cifras 2 -> 00–99 · cifras 3 -> 000–999
@@ -626,6 +658,7 @@ function aplicarConfig(c){
   var ks=modsOn();
   var tx=function(sel,v){ var el=q(sel); if(el&&v) el.textContent=v; };
   tx('.hb',s.etiqueta); tx('.hi h1',s.nombre); tx('.hs',s.subtitulo); tx('#premios .sh',s.premiosTitulo); tx('#premios .ss',s.premiosSub);
+  PREMIOS=(s.premios||[]).filter(function(p){ return p.valor; });
   var pr=(s.premios||[]).filter(function(p){ return p.valor && (!p.mod || ks.indexOf(p.mod)>-1); });
   var ct=q('#premios .ct');
   if(ct&&pr.length){
@@ -796,8 +829,34 @@ async function confirmarComp(){
     return;
   }
   document.getElementById('cbtn').style.display='none';
-  document.getElementById('cok').style.display='block';
-  setTimeout(resetTodo,3000);
+  mostrarFactura();
+}
+
+function escH(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// Factura que se muestra al cliente cuando ya subió su comprobante
+function mostrarFactura(){
+  var n=nDe(regData.modo||modo), k=regData.modo||modo;
+  var h1=document.querySelector('.hi h1'), marca=h1?h1.innerHTML.replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim():'Gran Rifa';
+  var premio='';
+  for(var i=0;i<PREMIOS.length;i++){ if(PREMIOS[i].mod===k){ premio=PREMIOS[i].valor; break; } }
+  if(!premio){ var pm=document.querySelector('#premios .pm'); if(pm) premio=pm.textContent.replace(/\s+/g,' ').trim(); }
+  var chips=(regData.nums||[]).map(function(x){return '<i>'+escH(x)+'</i>';}).join('');
+  var fila=function(ic,l,v){return '<div class="fac2r"><span>'+ic+' '+l+'</span><b>'+v+'</b></div>';};
+  document.getElementById('facBody').innerHTML=
+    '<div class="fac2h"><div><h2>FACTURA</h2><small>'+escH(marca)+'</small></div><div class="fac2n"><small>N°</small>'+escH(regData.id)+'<small style="margin-top:.3rem">'+escH(new Date().toLocaleString('es-CO'))+'</small></div></div>'+
+    '<div class="fac2b2"><div class="fac2st">⏳ Comprobante recibido · en verificación</div>'+
+    fila('👤','Nombre',escH(regData.nombre))+fila('📱','Celular',escH(regData.pais))+fila('📧','Correo',escH(regData.correo))+
+    fila('🎟️','Rifa',n>1?'Talonario x'+n+' · '+n+' números':'x1 · 1 número')+
+    (premio?fila('🏆','Gran premio',escH(premio)):'')+
+    fila('🔢','Números','<span class="fac2nm" style="color:inherit;font-weight:inherit">'+chips+'</span>')+
+    fila('💳','Método','Nu / Bre-B')+
+    '<div class="fac2t"><span>Total pagado</span><b>'+escH(formatCOP(regData.total))+'</b></div>'+
+    (compImg&&compImg!=='subido'?'<div class="fac2c"><img src="'+compImg+'" alt="Comprobante">Comprobante adjunto</div>':'')+
+    '<div class="fac2g">¡Gracias por participar! 🎄<br>Guarda una captura de esta factura. Te avisaremos si ganas.</div></div>';
+  document.getElementById('pgComp').classList.remove('on');
+  document.getElementById('pgPago').classList.remove('on');
+  document.getElementById('pgFac').classList.add('on');
+  var fw=document.getElementById('pgFac'); if(fw) fw.scrollTop=0; window.scrollTo(0,0);
 }
 
 function resetTodo(){
@@ -808,7 +867,7 @@ function resetTodo(){
   document.getElementById('cprev').style.display='none';document.getElementById('cbtn').style.display='none';
   document.getElementById('cok').style.display='none';document.getElementById('czni').style.opacity='1';
   document.getElementById('czn').style.borderColor='#ddd';compImg=null;
-  document.getElementById('pgComp').classList.remove('on');document.getElementById('pgPago').classList.remove('on');
+  document.getElementById('pgComp').classList.remove('on');document.getElementById('pgPago').classList.remove('on');document.getElementById('pgFac').classList.remove('on');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
