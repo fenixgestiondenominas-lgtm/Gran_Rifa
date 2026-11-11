@@ -264,7 +264,7 @@ h1.t{font-size:26px;font-weight:800;letter-spacing:-.5px}
 </head>
 <body>
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxVBZQzpJikXN9kdHCsdOiDuLcDEcqeGrfo135xq2997LlJ-beEVqdYXreCkQ34SQLp/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOO80RB9FkO-pDj3JmEV6q9dxIH42odoJetED9dWyqyAmdiaIoCGKgyndZVJ-csu-g/exec';
 let KEY = '';
 const fmt = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');   // 25000 -> 25.000
 const PRECIO = new Proxy({}, { get: (_, k) => { try { const m = conf.nums.mods[k]; if (m && Number(m.precio) > 0) return Number(m.precio); } catch (e) {} return { x1: 25000, x3: 50000 }[k] || 0; } });
