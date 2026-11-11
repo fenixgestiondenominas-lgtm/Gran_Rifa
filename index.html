@@ -32,7 +32,7 @@ nav{position:sticky;top:0;z-index:100;background:var(--paper);border-bottom:1px 
 .hsi:first-child{padding-left:0}.hsi:last-child{border-right:0}
 .hsi .big{font-family:var(--disp);font-size:clamp(1.3rem,5vw,1.7rem);display:block;line-height:1.1;color:var(--tx)}
 .hsi .sm{font-size:.78rem;font-weight:600;color:var(--gr)}
-.bh{display:inline-block;background:var(--r);color:var(--paper);font-family:var(--disp);font-size:1.05rem;padding:.8rem 1.6rem;border-radius:4px;text-decoration:none;transition:transform .15s}
+.bh{display:inline-block;background:var(--btn,var(--r));color:var(--btnt,var(--paper));font-family:var(--disp);font-size:1.05rem;padding:.8rem 1.6rem;border-radius:4px;text-decoration:none;transition:transform .15s}
 .bh:hover{transform:translateY(-2px)}
 section{padding:3rem 1.25rem}
 @media(min-width:600px){section{padding:4rem 2rem}}
@@ -56,7 +56,7 @@ section{padding:3rem 1.25rem}
 .sc{display:flex;flex-wrap:wrap;gap:.4rem}
 .sch{background:var(--r);color:var(--paper);font-family:var(--disp);font-size:.9rem;padding:.25rem .7rem;border-radius:3px}
 .stot{background:var(--tx);color:var(--paper);font-family:var(--disp);font-size:1rem;padding:.45rem 1rem;border-radius:3px;white-space:nowrap}
-.brg{background:var(--r);color:var(--paper);font-family:var(--disp);font-size:.95rem;border:none;border-radius:4px;padding:.55rem 1.2rem;cursor:pointer}
+.brg{background:var(--btn,var(--r));color:var(--btnt,var(--paper));font-family:var(--disp);font-size:.95rem;border:none;border-radius:4px;padding:.55rem 1.2rem;cursor:pointer}
 .brg:hover{background:#8F1726}
 .ft{display:flex;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem;border-bottom:1px solid var(--line)}
 .fb{background:none;border:none;border-bottom:3px solid transparent;color:var(--gr);font-family:'Figtree',sans-serif;font-weight:700;font-size:.9rem;padding:.4rem 0;margin-bottom:-1px;cursor:pointer}
@@ -95,7 +95,7 @@ section{padding:3rem 1.25rem}
 .fg input:focus,.fg select:focus{border-color:var(--pine);outline:2px solid var(--y)}
 .tel{display:flex}.tel select{flex:0 0 auto;width:5.5rem;max-width:30%;padding:0 .5rem;background:var(--pine);color:var(--paper);font-family:'Figtree',sans-serif;font-weight:800;font-size:.9rem;border:none;border-radius:4px 0 0 4px;cursor:pointer}.tel select option{background:#fff;color:#1d1a16}.tel input{border-radius:0 4px 4px 0!important}
 .ns{background:#FBEFEF;border:2px dashed var(--r);border-radius:4px;padding:.7rem 1rem;font-family:var(--disp);font-size:1rem;color:var(--r);min-height:48px;display:flex;align-items:center;flex-wrap:wrap;gap:.3rem}
-.br{width:100%;background:var(--r);color:var(--paper);font-family:var(--disp);font-size:1.1rem;border:none;border-radius:4px;padding:1rem;cursor:pointer;margin-top:.5rem}
+.br{width:100%;background:var(--btn,var(--r));color:var(--btnt,var(--paper));font-family:var(--disp);font-size:1.1rem;border:none;border-radius:4px;padding:1rem;cursor:pointer;margin-top:.5rem}
 .br:hover{background:#8F1726}
 .ri .rp{display:flex;gap:.75rem;align-items:flex-start;margin-bottom:1.1rem}
 .ri .rp .ico{font-size:1.4rem;flex-shrink:0}
@@ -150,7 +150,7 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 .uz input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .uz .ui{font-size:2rem;margin-bottom:.4rem}.uz p{font-size:.9rem;font-weight:600;color:var(--gr)}
 .upv{width:100%;height:160px;object-fit:contain;border-radius:6px;border:1px solid var(--line);margin-top:.75rem;display:none}
-.ab{width:100%;background:var(--r);color:var(--paper);font-family:var(--disp);font-size:1.05rem;border:none;border-radius:4px;padding:.9rem;cursor:pointer;margin-top:.5rem}
+.ab{width:100%;background:var(--btn,var(--r));color:var(--btnt,var(--paper));font-family:var(--disp);font-size:1.05rem;border:none;border-radius:4px;padding:.9rem;cursor:pointer;margin-top:.5rem}
 .abs{width:100%;background:none;border:1.5px solid #cdbf9f;color:var(--gr);font-family:'Figtree',sans-serif;font-weight:700;font-size:.9rem;border-radius:4px;padding:.7rem;cursor:pointer;margin-top:.5rem}
 .aok{display:none;background:#E4EFE6;border:2px solid var(--pine);border-radius:6px;padding:1rem;text-align:center;font-weight:800;color:var(--pine);margin-top:.75rem}
 .rst{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}
@@ -197,8 +197,17 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 .fac2c{display:flex;align-items:center;gap:.8rem;margin-top:1rem;font-size:.82rem;font-weight:700;color:var(--gr)}
 .fac2c img{width:62px;height:62px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .fac2g{text-align:center;font-size:.82rem;font-weight:600;color:var(--gr);margin-top:1.1rem;padding-top:1rem;border-top:1px dashed var(--line);line-height:1.6}
-.fac2bt{display:block;width:100%;margin-top:1rem;background:var(--r);color:var(--paper);font-family:var(--disp);font-size:1.2rem;border:none;border-radius:999px;padding:1rem;cursor:pointer}
+.fac2bt{display:block;width:100%;margin-top:1rem;background:var(--btn,var(--r));color:var(--btnt,var(--paper));font-family:var(--disp);font-size:1.2rem;border:none;border-radius:999px;padding:1rem;cursor:pointer}
 .fac2bt:hover{background:#8F1726}
+
+/* Conectado al admin: colores de la grilla y WhatsApp */
+:root{--cd:var(--line);--cdbg:#fff;--cr:var(--y);--crbg:#F1DDA8;--cv:var(--line);--cvt:#b2a68e}
+.nb.disp{background:var(--cdbg);border-color:var(--cd)}
+.nb.rsv{background:var(--crbg);border-color:var(--cr)}
+.nb.vend{border-color:var(--cv);color:var(--cvt)}
+.ld.d{background:var(--cdbg);border-color:var(--cd)}.ld.r{background:var(--crbg);border-color:var(--cr)}.ld.v{border-color:var(--cv)}
+.wa{position:fixed;right:16px;bottom:16px;z-index:200;width:54px;height:54px;border-radius:50%;background:#25D366;color:#fff;font-size:1.6rem;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.28);transition:transform .15s}
+.wa:hover{transform:scale(1.08)}
 </style>
 </head>
 <body>
@@ -364,7 +373,7 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
     </div>
 
     <div style="text-align:center;margin-top:2rem">
-      <button onclick="abrirComp()" style="background:var(--r);color:#fff;font-family:var(--disp);font-size:1.3rem;border:none;border-radius:50px;padding:1rem 3rem;cursor:pointer;box-shadow:0 6px 20px rgba(255,71,87,.3);transition:transform .2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">Ya pagué — Siguiente →</button>
+      <button onclick="abrirComp()" style="background:var(--btn,var(--r));color:var(--btnt,#fff);font-family:var(--disp);font-size:1.3rem;border:none;border-radius:50px;padding:1rem 3rem;cursor:pointer;box-shadow:0 6px 20px rgba(255,71,87,.3);transition:transform .2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">Ya pagué — Siguiente →</button>
       <p style="font-size:.8rem;color:var(--gr);font-weight:600;margin-top:.6rem">Toca cuando hayas realizado el pago</p>
     </div>
   </div>
@@ -657,6 +666,20 @@ function aplicarConfig(c){
   if(c.nums && Number(c.nums.cols)>=3) CFGCOLS=Math.min(20,Math.round(Number(c.nums.cols)));
   var ks=modsOn();
   var tx=function(sel,v){ var el=q(sel); if(el&&v) el.textContent=v; };
+  // ── Colores, grilla y WhatsApp del admin ──
+  var hx=function(v){ return /^#[0-9a-f]{6}$/i.test(String(v||'')); };
+  var tinte=function(h,a){ var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16),m=function(x){return Math.round(x*a+255*(1-a));}; return 'rgb('+m(r)+','+m(g)+','+m(b)+')'; };
+  var rs=document.documentElement.style, nn=c.nums||{};
+  // El color por defecto del admin (#1D4ED8) se ignora para no pintar de azul el diseño navideño
+  if(hx(s.color)&&s.color.toLowerCase()!=='#1d4ed8'){ rs.setProperty('--btn',s.color); if(hx(s.texto)) rs.setProperty('--btnt',s.texto); }
+  if(hx(nn.cDisp)&&nn.cDisp.toLowerCase()!=='#34d399'){ rs.setProperty('--cd',nn.cDisp); rs.setProperty('--cdbg',tinte(nn.cDisp,.16)); var e1=document.getElementById('cd'); if(e1) e1.style.color=nn.cDisp; }
+  if(hx(nn.cRes)&&nn.cRes.toLowerCase()!=='#f5b73d'){ rs.setProperty('--cr',nn.cRes); rs.setProperty('--crbg',tinte(nn.cRes,.28)); var e2=document.getElementById('cr'); if(e2) e2.style.color=nn.cRes; }
+  if(hx(nn.cVen)&&nn.cVen.toLowerCase()!=='#f0657a'){ rs.setProperty('--cv',nn.cVen); rs.setProperty('--cvt',nn.cVen); var e3=document.getElementById('cv'); if(e3) e3.style.color=nn.cVen; }
+  var dg=String(s.whatsapp||'').replace(/\D/g,''), wa=document.getElementById('waBtn');
+  if(dg.length>=8&&dg.length<=15){
+    if(!wa){ wa=document.createElement('a'); wa.id='waBtn'; wa.className='wa'; wa.target='_blank'; wa.rel='noopener'; wa.setAttribute('aria-label','Escríbenos por WhatsApp'); wa.textContent='💬'; document.body.appendChild(wa); }
+    wa.href='https://wa.me/'+dg;
+  } else if(wa&&wa.parentNode) wa.parentNode.removeChild(wa);
   tx('.hb',s.etiqueta); tx('.hi h1',s.nombre); tx('.hs',s.subtitulo); tx('#premios .sh',s.premiosTitulo); tx('#premios .ss',s.premiosSub);
   PREMIOS=(s.premios||[]).filter(function(p){ return p.valor; });
   var pr=(s.premios||[]).filter(function(p){ return p.valor && (!p.mod || ks.indexOf(p.mod)>-1); });
