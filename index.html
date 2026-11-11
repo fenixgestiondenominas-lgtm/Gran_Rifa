@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script>
+// Anti-parpadeo: sin copia guardada de la configuración, se ocultan las zonas dinámicas hasta que llegue (tope 4 s)
+(function(){var d=document.documentElement,ok=false;try{ok=!!localStorage.getItem('rifaCfgV1');}catch(e){}
+if(!ok){d.className+=' cl';setTimeout(function(){d.className=d.className.replace(/\bcl\b/,'');},4000);}})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gran Rifa Navideña · Diciembre</title>
@@ -208,6 +213,10 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 .ld.d{background:var(--cdbg);border-color:var(--cd)}.ld.r{background:var(--crbg);border-color:var(--cr)}.ld.v{border-color:var(--cv)}
 .wa{position:fixed;right:16px;bottom:16px;z-index:200;width:54px;height:54px;border-radius:50%;background:#25D366;color:#fff;font-size:1.6rem;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.28);transition:transform .15s}
 .wa:hover{transform:scale(1.08)}
+
+/* Anti-parpadeo: zonas con datos que vienen del admin */
+.hi,#premios .ct,#numeros>*,.hb{transition:opacity .25s ease}
+.cl .hi,.cl #premios .ct,.cl #numeros>*{opacity:0;pointer-events:none}
 </style>
 </head>
 <body>
@@ -649,12 +658,14 @@ async function cargarConfigAdmin(){
     if(!j||!j.ok||!j.data) return;
     var c=j.data, ms=(c.pago&&c.pago.metodos)||[];
     try{ aplicarConfig(c); }catch(e){ console.warn('[Config] no se pudo aplicar', e); }
+    try{ localStorage.setItem('rifaCfgV1',JSON.stringify({sitio:c.sitio,nums:c.nums})); }catch(e){}   // copia ligera (sin QR) para el próximo arranque
     var nu=ms.filter(function(m){return m.tipo==='nu';})[0];
     if(nu){
       if(nu.dato){var el=document.getElementById('nullave');if(el)el.textContent=nu.dato;}
       if(nu.qr){var im=document.getElementById('qimg'),sv=document.getElementById('qsvg');if(im){im.src=nu.qr;im.style.display='block';}if(sv)sv.style.display='none';}
     }
   }catch(e){ console.warn('[Config] no disponible, se usan valores del sitio'); }
+  finally{ document.documentElement.className=document.documentElement.className.replace(/\bcl\b/,''); }
 }
 function aplicarConfig(c){
   var s=c.sitio||{}, mods=(c.nums&&c.nums.mods)||{}, q=function(x){return document.querySelector(x);};
@@ -700,6 +711,13 @@ function aplicarConfig(c){
   selId=null; construirModos(); pintarTitulo(); construirGrid(); updBar();
   var pm=document.getElementById('pmto'); if(pm) pm.textContent=formatCOP(MODS[modo].precio);
 }
+// Muestra al instante la última configuración conocida (sin esperar al servidor) y luego la actualiza
+(function(){
+  try{
+    var raw=localStorage.getItem('rifaCfgV1');
+    if(raw){ aplicarConfig(JSON.parse(raw)); }
+  }catch(e){ try{localStorage.removeItem('rifaCfgV1');}catch(x){} }
+})();
 cargarConfigAdmin();
  // refresca cada 20s para ver reservas/ventas de otros usuarios
 
