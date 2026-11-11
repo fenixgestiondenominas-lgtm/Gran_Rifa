@@ -740,6 +740,8 @@ async function pullConfig() {
   try {
     const j = await (await fetch(SCRIPT_URL + '?action=getconfig&key=' + encodeURIComponent(KEY), { redirect: 'follow', cache: 'no-store' })).json();
     if (!j.ok || !j.data) return;
+    // El servidor aún no tiene configuración publicada (precios, moneda, correos): se publica la del panel automáticamente
+    if (!j.data.savedAt) { confSaved = JSON.parse(JSON.stringify(conf)); syncServer().then(ok => toast(ok ? 'Panel conectado: precios y ajustes publicados en el servidor' : 'No se pudo conectar el panel con el servidor', !ok)); return; }
     const adm = conf.mail.admin; conf = mix(DEF, j.data); if (!conf.mail.admin) conf.mail.admin = adm;
     confSaved = JSON.parse(JSON.stringify(conf)); try { localStorage.setItem('rifa_cfg', JSON.stringify(conf)); } catch (e) {}
     drawNav(); render();
@@ -769,12 +771,13 @@ const seg = (p, o) => `<div class="segc" style="grid-template-columns:repeat(${o
 const PLAT = {
   nequi: { n: 'Nequi', t: 'Nombre del titular', tp: 'Ej. Valentina', d: 'Número de celular', dp: '3001234567', ty: 'tel' },
   nu: { n: 'Nu / Bre-B', t: 'Nombre / Alias del titular', tp: 'Ej. @alsmdas', d: 'Llave Bre-B o número de cuenta', dp: '@llave o 0000000000' },
+  breb: { n: 'Bre-B', t: 'Nombre / Alias del titular', tp: 'Ej. Valentina Gómez', d: 'Llave Bre-B', dp: '@llave, celular o correo' },
   binance: { n: 'Binance Pay', t: 'Alias o Pay ID', tp: 'Ej. @alias o 123456789', d: null },
   bancolombia: { n: 'Bancolombia', t: 'Nombre del titular', tp: 'Ej. Valentina Gómez', d: 'Número de cuenta', dp: '00000000000' },
   daviplata: { n: 'Daviplata', t: 'Nombre del titular', tp: 'Ej. Valentina', d: 'Número de celular', dp: '3001234567', ty: 'tel' },
   usdt: { n: 'Billetera USDT', t: 'Nombre o etiqueta', tp: 'Ej. Mi billetera', d: 'Dirección de la billetera', dp: 'Dirección completa' }
 };
-const LOGO = { nequi: '#C026D3', nu: '#820AD1', binance: '#F0B90B', bancolombia: '#FDDA24', daviplata: '#E11D48', usdt: '#26A17B' };
+const LOGO = { nequi: '#C026D3', nu: '#820AD1', breb: '#0EA5E9', binance: '#F0B90B', bancolombia: '#FDDA24', daviplata: '#E11D48', usdt: '#26A17B' };
 let pdraft = null;
 function pNuevo() { pdraft = { id: null, tipo: '', titular: '', dato: '', qr: '' }; drawCfg(); }
 function pEditar(id) { const m = conf.pago.metodos.find(x => x.id === id); if (m) { pdraft = { ...m }; drawCfg(); } }

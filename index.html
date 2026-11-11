@@ -378,7 +378,7 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
           </div>
           <button onclick="copiarLlaveNu()" style="width:100%;background:linear-gradient(135deg,#820AD1,#5A0C8A);color:#fff;font-family:var(--disp);font-size:.95rem;border:none;border-radius:10px;padding:.65rem;cursor:pointer;margin-bottom:.5rem">📋 Copiar llave</button>
           <p id="llavecopiada" style="display:none;font-size:.8rem;color:#2E7D32;font-weight:800;text-align:center">✅ ¡Llave copiada!</p>
-          <p style="font-family:var(--disp);font-size:1rem;margin:.5rem 0;color:#820AD1">Nu · Bre-B</p>
+          <p id="metlbl" style="font-family:var(--disp);font-size:1rem;margin:.5rem 0;color:#820AD1">Nu · Bre-B</p>
           <p style="font-size:.78rem;color:var(--gr);font-weight:700">Llave Nu: @VVR390</p>
         </div>
       </div>
@@ -447,7 +447,7 @@ function idDe(k,nums){return nDe(k)<=1?nums[0]:Math.min.apply(null,nums);}
 function modsOn(){var a=[];for(var n=1;n<=5;n++)if(MODS['x'+n].on)a.push('x'+n);return a.length?a:['x1'];}
 function etiquetaMod(k){var n=nDe(k);return n>1?'Talonario x'+n:'Número individual';}
 modo=modsOn()[0];
-var _metodo='nubank'; // único método de pago activo
+var _metLabel='Nu / Bre-B'; var _metodo='nubank'; // único método de pago activo
 
 function copiarLlaveNu(){
   var llave=document.getElementById('nullave').textContent;
@@ -662,8 +662,10 @@ async function cargarConfigAdmin(){
     var c=j.data, ms=(c.pago&&c.pago.metodos)||[];
     try{ aplicarConfig(c); }catch(e){ console.warn('[Config] no se pudo aplicar', e); }
     try{ localStorage.setItem('rifaCfgV1',JSON.stringify({sitio:c.sitio,nums:c.nums})); }catch(e){}   // copia ligera (sin QR) para el próximo arranque
-    var nu=ms.filter(function(m){return m.tipo==='nu';})[0];
+    var nu=ms.filter(function(m){return m.tipo==='nu'||m.tipo==='breb';})[0];
     if(nu){
+      var esB=(nu.tipo==='breb'); _metLabel=esB?'Bre-B':'Nu / Bre-B'; _metodo=esB?'breb':'nubank';
+      var ml=document.getElementById('metlbl'); if(ml) ml.textContent=esB?'Bre-B':'Nu · Bre-B';
       if(nu.dato){var el=document.getElementById('nullave');if(el)el.textContent=nu.dato;}
       if(nu.qr){var im=document.getElementById('qimg'),sv=document.getElementById('qsvg');if(im){im.src=nu.qr;im.style.display='block';}if(sv)sv.style.display='none';}
     }
@@ -903,7 +905,7 @@ function mostrarFactura(){
     fila('🎟️','Rifa',n>1?'Talonario x'+n+' · '+n+' números':'x1 · 1 número')+
     (premio?fila('🏆','Gran premio',escH(premio)):'')+
     fila('🔢','Números','<span class="fac2nm" style="color:inherit;font-weight:inherit">'+chips+'</span>')+
-    fila('💳','Método','Nu / Bre-B')+
+    fila('💳','Método',escH(_metLabel))+
     '<div class="fac2t"><span>Total pagado</span><b>'+escH(formatCOP(regData.total))+'</b></div>'+
     (compImg&&compImg!=='subido'?'<div class="fac2c"><img src="'+compImg+'" alt="Comprobante">Comprobante adjunto</div>':'')+
     '<div class="fac2g">¡Gracias por participar! 🎄<br>Guarda una captura de esta factura. Te avisaremos si ganas.</div></div>';
