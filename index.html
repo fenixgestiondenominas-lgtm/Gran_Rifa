@@ -428,12 +428,12 @@ footer p{font-size:.9rem;opacity:.8;font-weight:500}
 
 <script>
 // ── GOOGLE SHEETS — pega tu URL aquí ──
-var GSHEET_URL='https://script.google.com/macros/s/AKfycbw0HoBeo3AXdE4NZE9VOCwFVquxyHyxvy7sIjGl_7Zp-Fw0uPymb0FJSRFno7xygYAT/exec'; // MISMO backend que admin.html (SCRIPT_URL). Si cambias uno, cambia el otro.
+var GSHEET_URL='https://script.google.com/macros/s/AKfycbxVBZQzpJikXN9kdHCsdOiDuLcDEcqeGrfo135xq2997LlJ-beEVqdYXreCkQ34SQLp/exec'; // MISMO backend que admin.html (SCRIPT_URL). Si cambias uno, cambia el otro.
 // ────────────────────────────────────────
 var MONEDA='COP', regData={}, compImg=null, selId=null, modo='x1', REGS=[], filtroActual='todos', CFGCOLS=10, PREMIOS=[];
 // Modalidades (mismos valores por defecto que admin.html; el admin las publica y aplicarConfig() las sobrescribe)
 //  x1 = 1 número por boleto · xN (N>=2) = TALONARIO: cada boleto trae N números repartidos en el rango
-//  cifras 1 -> 0–9 · cifras 2 -> 00–99 · cifras 3 -> 000–999
+//  cifras 2 -> 00–99 · cifras 3 -> 000–999
 var MODS={x1:{on:true,cifras:2,precio:25000},x2:{on:false,cifras:3,precio:40000},x3:{on:true,cifras:3,precio:50000},x4:{on:false,cifras:3,precio:60000},x5:{on:false,cifras:3,precio:75000}};
 function fmt(n){return String(Math.round(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g,'.');}   // 25000 -> 25.000
 function pad(n,c){return String(n).padStart(c,'0');}
@@ -674,7 +674,7 @@ function aplicarConfig(c){
   var s=c.sitio||{}, mods=(c.nums&&c.nums.mods)||{}, q=function(x){return document.querySelector(x);};
   for(var n=1;n<=5;n++){
     var k='x'+n, m=mods[k]; if(!m) continue;
-    MODS[k].on=!!m.on; MODS[k].cifras=([1,2,3].indexOf(Number(m.cifras))>-1?Number(m.cifras):3);
+    MODS[k].on=!!m.on; MODS[k].cifras=(Number(m.cifras)===2?2:3);
     if(Number(m.precio)>0) MODS[k].precio=Number(m.precio);
   }
   if(c.nums && Number(c.nums.cols)>=3) CFGCOLS=Math.min(20,Math.round(Number(c.nums.cols)));
